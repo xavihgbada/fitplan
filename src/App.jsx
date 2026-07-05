@@ -129,7 +129,7 @@ export default function FitnessPlanGenerator() {
     if (!form.goal.trim() || !form.excuse.trim()) { setError("Please fill in your goal and main challenge."); return; }
     setError(""); setLoading(true); setPlan(null);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 8000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: buildPrompt(form) }] }),
