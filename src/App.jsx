@@ -185,10 +185,29 @@ export default function FitnessPlanGenerator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeWorkout, setActiveWorkout] = useState(0);
+  const [selectedExercise, setSelectedExercise] = useState(null);
+  const [gifData, setGifData] = useState({});
+  const [gifLoading, setGifLoading] = useState(null);
 
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
   const handleEquipmentLocation = (loc) => setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
+
+  const fetchGif = async (exerciseName) => {
+    if (selectedExercise === exerciseName) { setSelectedExercise(null); return; }
+    setSelectedExercise(exerciseName);
+    if (gifData[exerciseName]) return;
+    setGifLoading(exerciseName);
+    try {
+      const res = await fetch(`/api/exercise-gif?name=${encodeURIComponent(exerciseName)}`);
+      const data = await res.json();
+      setGifData(prev => ({ ...prev, [exerciseName]: data.gifUrl || null }));
+    } catch (e) {
+      setGifData(prev => ({ ...prev, [exerciseName]: null }));
+    } finally {
+      setGifLoading(null);
+    }
+  };
 
   const generate = async () => {
     if (!form.goal.trim() || !form.excuse.trim()) { setError("Please fill in your goal and main challenge."); return; }
@@ -339,16 +358,34 @@ export default function FitnessPlanGenerator() {
                       )}
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", margin: "0.75rem 0" }}>
                         {w.exercises?.map((ex, i) => (
-                          <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5rem 1fr auto", gap: "0.6rem", alignItems: "start", padding: "0.7rem 0.85rem", background: "#F9FAFB", borderRadius: "9px", border: "1px solid #F3F4F6" }}>
-                            <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#E5E7EB", color: "#374151", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</div>
-                            <div>
-                              <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#111827" }}>{ex.name}</div>
-                              {ex.note && <div style={{ fontSize: "0.77rem", color: "#9CA3AF", marginTop: "0.15rem", lineHeight: 1.4 }}>{ex.note}</div>}
+                          <div key={i} style={{ background: "#F9FAFB", borderRadius: "9px", border: `1px solid ${selectedExercise === ex.name ? "#16A34A" : "#F3F4F6"}`, overflow: "hidden", transition: "border-color 0.15s" }}>
+                            <div onClick={() => fetchGif(ex.name)} style={{ display: "grid", gridTemplateColumns: "1.5rem 1fr auto", gap: "0.6rem", alignItems: "start", padding: "0.7rem 0.85rem", cursor: "pointer" }}>
+                              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#E5E7EB", color: "#374151", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</div>
+                              <div>
+                                <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#111827", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                                  {ex.name}
+                                  <span style={{ fontSize: "0.68rem", color: "#16A34A", fontWeight: 600 }}>{selectedExercise === ex.name ? "▲ hide" : "▼ how to"}</span>
+                                </div>
+                                {ex.note && <div style={{ fontSize: "0.77rem", color: "#9CA3AF", marginTop: "0.15rem", lineHeight: 1.4 }}>{ex.note}</div>}
+                              </div>
+                              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#16A34A" }}>{ex.sets}×{ex.reps}</div>
+                                <div style={{ fontSize: "0.72rem", color: "#9CA3AF" }}>{ex.rest} rest</div>
+                              </div>
                             </div>
-                            <div style={{ textAlign: "right", flexShrink: 0 }}>
-                              <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#16A34A" }}>{ex.sets}×{ex.reps}</div>
-                              <div style={{ fontSize: "0.72rem", color: "#9CA3AF" }}>{ex.rest} rest</div>
-                            </div>
+                            {selectedExercise === ex.name && (
+                              <div style={{ padding: "0 0.85rem 0.85rem", borderTop: "1px solid #F3F4F6" }}>
+                                {gifLoading === ex.name ? (
+                                  <div style={{ textAlign: "center", padding: "1rem", color: "#9CA3AF", fontSize: "0.82rem" }}>Loading animation...</div>
+                                ) : gifData[ex.name] ? (
+                                  <div style={{ display: "flex", justifyContent: "center", paddingTop: "0.75rem" }}>
+                                    <img src={gifData[ex.name]} alt={ex.name} style={{ maxWidth: 280, borderRadius: "8px" }} />
+                                  </div>
+                                ) : (
+                                  <div style={{ textAlign: "center", padding: "1rem", color: "#9CA3AF", fontSize: "0.82rem" }}>No animation found for this exercise.</div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
