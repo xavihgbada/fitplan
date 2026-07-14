@@ -1,5 +1,19 @@
 import { useState } from "react";
 
+const HOME_EQUIPMENT_OPTIONS = [
+  { id: "barbell", label: "Barbell & plates" },
+  { id: "dumbbells", label: "Dumbbells" },
+  { id: "kettlebells", label: "Kettlebells" },
+  { id: "bench", label: "Flat bench" },
+  { id: "incline_bench", label: "Incline bench" },
+  { id: "pullup_bar", label: "Pull-up bar" },
+  { id: "resistance_bands", label: "Resistance bands" },
+  { id: "step_platform", label: "Step platform" },
+  { id: "smart_bar", label: "Les Mills smart bar" },
+  { id: "trx", label: "TRX / suspension trainer" },
+  { id: "cardio_machines", label: "Cardio machine (bike, treadmill, etc.)" },
+];
+
 const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized workout plans. Return ONLY a valid JSON object, no markdown, no explanation, no preamble. The JSON must exactly match this structure:
 
 {
@@ -32,6 +46,8 @@ const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized wor
 
 Be specific. Every exercise must have sets, reps, and rest. Include 4-6 exercises per workout. Never include exercises the person dislikes. Directly address their past failures in the motivation strategy. Adapt everything to their injuries and limitations.
 
+EQUIPMENT RULE — CRITICAL: Only assign exercises that can be performed with the exact equipment listed. If an exercise requires a piece of equipment not on the list, do not include it. For example: if no bench is listed, do not assign bench press or incline dumbbell press. If no leg press machine is listed, do not assign leg press. If only a step platform is listed, use it for step-ups, not as a bench substitute.
+
 VOLUME GUIDELINES — calibrate total weekly sets per muscle group to fitness level:
 - Beginner: 10-15 sets per muscle group per week
 - Intermediate: 12-18 sets per muscle group per week
@@ -60,9 +76,13 @@ Previous attempts & what went wrong: ${data.pastAttempts || "None specified"}
 Exercises they enjoy: ${data.enjoy || "None specified"}
 Exercises they dislike or want to avoid: ${data.dislike || "None specified"}
 Injuries or physical limitations: ${data.injuries || "None"}
-Equipment available: ${data.equipment || "Standard gym"}
+Available equipment (ONLY use these): ${
+  data.equipmentLocation === "full_gym" ? "Full commercial gym — all standard equipment available" :
+  data.equipmentLocation === "bodyweight" ? "Bodyweight only — no equipment" :
+  data.equipment.length > 0 ? data.equipment.join(", ") : "Bodyweight only"
+}
 
-IMPORTANT: Account for any other physical activity listed above. Place rest days or lower-intensity sessions around those activities to avoid overtraining and schedule conflicts. Use every detail above to make this feel built specifically for this person. Return only the JSON object.`;
+CRITICAL: Do not assign any exercise that requires equipment not listed above. Return only the JSON object.`;
 
 const TAG_COLORS = {
   "Strength": { bg: "#EFF6FF", color: "#1D4ED8" },
@@ -111,11 +131,54 @@ const Divider = ({ label }) => (
   </div>
 );
 
+const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentChange }) => {
+  const toggle = (id) => {
+    onEquipmentChange(selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]);
+  };
+  return (
+    <div style={{ marginBottom: "1.1rem" }}>
+      <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: "0.25rem" }}>Where do you train?</label>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.85rem", flexWrap: "wrap" }}>
+        {[
+          { id: "full_gym", label: "🏋️ Commercial gym" },
+          { id: "home_gym", label: "🏠 Home gym" },
+          { id: "bodyweight", label: "🤸 Bodyweight only" },
+        ].map(opt => (
+          <button key={opt.id} onClick={() => onLocationChange(opt.id)} type="button" style={{
+            padding: "0.5rem 1rem", borderRadius: "9px", border: `1.5px solid ${location === opt.id ? "#16A34A" : "#E5E7EB"}`,
+            background: location === opt.id ? "#F0FDF4" : "#FAFAFA", color: location === opt.id ? "#15803D" : "#6B7280",
+            fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", transition: "all 0.12s"
+          }}>{opt.label}</button>
+        ))}
+      </div>
+      {location === "home_gym" && (
+        <>
+          <p style={{ fontSize: "0.78rem", color: "#9CA3AF", margin: "0 0 0.6rem", lineHeight: 1.4 }}>Select what you have at home — your plan will only use these.</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {HOME_EQUIPMENT_OPTIONS.map(eq => {
+              const isSelected = selected.includes(eq.id);
+              return (
+                <button key={eq.id} onClick={() => toggle(eq.id)} type="button" style={{
+                  padding: "0.4rem 0.75rem", borderRadius: "20px", border: `1.5px solid ${isSelected ? "#16A34A" : "#E5E7EB"}`,
+                  background: isSelected ? "#F0FDF4" : "#FAFAFA", color: isSelected ? "#15803D" : "#6B7280",
+                  fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", transition: "all 0.12s"
+                }}>
+                  {isSelected ? "✓ " : ""}{eq.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function FitnessPlanGenerator() {
   const [form, setForm] = useState({
     goal: "", target: "", days: "4", specificDays: "", time: "45", trainTime: "morning",
     level: "beginner", excuse: "", pastAttempts: "",
-    enjoy: "", dislike: "", injuries: "", equipment: "",
+    enjoy: "", dislike: "", injuries: "", equipment: [], equipmentLocation: "",
     otherActivity: ""
   });
   const [plan, setPlan] = useState(null);
@@ -124,9 +187,12 @@ export default function FitnessPlanGenerator() {
   const [activeWorkout, setActiveWorkout] = useState(0);
 
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+  const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
+  const handleEquipmentLocation = (loc) => setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
 
   const generate = async () => {
     if (!form.goal.trim() || !form.excuse.trim()) { setError("Please fill in your goal and main challenge."); return; }
+    if (!form.equipmentLocation) { setError("Please select where you train."); return; }
     setError(""); setLoading(true); setPlan(null);
     try {
       const res = await fetch("/api/generate-plan", {
@@ -149,7 +215,6 @@ export default function FitnessPlanGenerator() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
-      {/* Header */}
       <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
         <div>
@@ -168,33 +233,34 @@ export default function FitnessPlanGenerator() {
           <>
             <div style={{ marginBottom: "1.75rem" }}>
               <h1 style={{ fontSize: "1.65rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem" }}>Your plan. Your life.</h1>
-              <p style={{ color: "#6B7280", fontSize: "0.92rem", margin: 0, lineHeight: 1.65 }}>The more specific you are, the more personal your plan will be. Don't rush this — it takes 2 minutes and makes all the difference.</p>
+              <p style={{ color: "#6B7280", fontSize: "0.92rem", margin: 0, lineHeight: 1.65 }}>The more specific you are, the more personal your plan will be.</p>
             </div>
             <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #E5E7EB", padding: "1.6rem" }}>
-
               <Divider label="Your Goal" />
               <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" />
               <Field label="Specific target" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better — give us a number if you can." />
 
               <Divider label="Your Schedule" />
-              <Field label="Other physical activity or sports" name="otherActivity" value={form.otherActivity} onChange={handleChange} placeholder="e.g. Football on Tuesdays and Thursdays, badminton twice a week, daily walking" hint="Include anything that requires physical effort — this prevents the plan from clashing with your existing activity." />
+              <Field label="Other physical activity or sports" name="otherActivity" value={form.otherActivity} onChange={handleChange} placeholder="e.g. Football on Tuesdays and Thursdays, badminton twice a week" hint="Include anything physical — this prevents the plan from clashing with your existing activity." />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.85rem" }}>
                 <Field label="Gym days per week" name="days" value={form.days} onChange={handleChange} as="select" options={[2,3,4,5,6].map(n => ({ value: String(n), label: `${n} days` }))} />
                 <Field label="Minutes per session" name="time" value={form.time} onChange={handleChange} as="select" options={[30,45,60,75,90].map(n => ({ value: String(n), label: `${n} min` }))} />
                 <Field label="Preferred time" name="trainTime" value={form.trainTime} onChange={handleChange} as="select" options={[{ value: "morning", label: "Morning" }, { value: "afternoon", label: "Afternoon" }, { value: "evening", label: "Evening" }, { value: "flexible", label: "Flexible" }]} />
               </div>
-              <Field label="Specific days? (optional)" name="specificDays" value={form.specificDays} onChange={handleChange} placeholder="e.g. Monday, Wednesday, Friday, Sunday — leave blank to let the plan decide" hint="Only fill this in if you have fixed days. Otherwise we'll assign optimal days automatically." />
+              <Field label="Specific days? (optional)" name="specificDays" value={form.specificDays} onChange={handleChange} placeholder="e.g. Monday, Wednesday, Friday — leave blank to let the plan decide" hint="Only fill this in if you have fixed days." />
               <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
 
               <Divider label="Your Challenges" />
               <Field label="What's your biggest excuse or challenge?" name="excuse" value={form.excuse} onChange={handleChange} placeholder="e.g. I get home tired at 6pm and plain lifting bores me" as="textarea" />
-              <Field label="Have you tried a fitness plan before? What went wrong?" name="pastAttempts" value={form.pastAttempts} onChange={handleChange} placeholder="e.g. I quit after 2 weeks because it felt too repetitive and I lost motivation" as="textarea" hint="This helps build a plan that avoids your past pitfalls." />
+              <Field label="Have you tried a fitness plan before? What went wrong?" name="pastAttempts" value={form.pastAttempts} onChange={handleChange} placeholder="e.g. I quit after 2 weeks because it felt too repetitive" as="textarea" hint="This helps build a plan that avoids your past pitfalls." />
 
               <Divider label="Your Preferences" />
-              <Field label="Exercises or activities you enjoy" name="enjoy" value={form.enjoy} onChange={handleChange} placeholder="e.g. Group classes, cycling, bodyweight movements, anything with music" />
-              <Field label="Exercises you dislike or want to avoid" name="dislike" value={form.dislike} onChange={handleChange} placeholder="e.g. Running, heavy barbell squats, anything too repetitive" />
+              <Field label="Exercises or activities you enjoy" name="enjoy" value={form.enjoy} onChange={handleChange} placeholder="e.g. Group classes, cycling, bodyweight movements" />
+              <Field label="Exercises you dislike or want to avoid" name="dislike" value={form.dislike} onChange={handleChange} placeholder="e.g. Running, heavy barbell squats" />
               <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues — or 'none'" />
-              <Field label="Equipment available" name="equipment" value={form.equipment} onChange={handleChange} placeholder="e.g. Full gym with cables and machines, home with dumbbells only" />
+
+              <Divider label="Your Equipment" />
+              <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} />
 
               {error && <p style={{ color: "#DC2626", fontSize: "0.85rem", margin: "0 0 1rem" }}>{error}</p>}
               <button onClick={generate} style={{ width: "100%", padding: "0.8rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", marginTop: "0.5rem" }}
