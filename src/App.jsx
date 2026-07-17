@@ -1,7 +1,16 @@
 import { useState } from "react";
 
+const loadJsPDF = () => new Promise((resolve, reject) => {
+  if (window.jspdf) { resolve(window.jspdf.jsPDF); return; }
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  script.onload = () => resolve(window.jspdf.jsPDF);
+  script.onerror = reject;
+  document.head.appendChild(script);
+});
+
 const exportToPDF = async (plan) => {
-  const { jsPDF } = await import("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const jsPDF = await loadJsPDF();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   const GREEN = [22, 163, 74];
