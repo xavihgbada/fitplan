@@ -1,5 +1,261 @@
 import { useState } from "react";
 
+const exportToPDF = async (plan) => {
+  const { jsPDF } = await import("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  const GREEN = [22, 163, 74];
+  const DARK = [17, 24, 39];
+  const GRAY = [107, 114, 128];
+  const LIGHT_GREEN_BG = [240, 253, 244];
+  const pageW = 210;
+  const margin = 16;
+  const contentW = pageW - margin * 2;
+  let y = 20;
+
+  const checkPage = (needed = 10) => {
+    if (y + needed > 275) { doc.addPage(); y = 20; }
+  };
+
+  const addText = (text, x, fontSize, color, fontStyle = "normal", maxWidth = null) => {
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...color);
+    doc.setFont("helvetica", fontStyle);
+    if (maxWidth) {
+      const lines = doc.splitTextToSize(text, maxWidth);
+      doc.text(lines, x, y);
+      return lines.length * (fontSize * 0.45);
+    } else {
+      doc.text(text, x, y);
+      return fontSize * 0.45;
+    }
+  };
+
+  // Header bar
+  doc.setFillColor(...GREEN);
+  doc.rect(0, 0, pageW, 28, "F");
+  doc.setFontSize(18);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.text("FitPlan AI", margin, 12);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Powered by Claude · fitplan-lake.vercel.app", margin, 20);
+  y = 38;
+
+  // Plan title
+  doc.setFontSize(16);
+  doc.setTextColor(...DARK);
+  doc.setFont("helvetica", "bold");
+  doc.text(plan.title, margin, y);
+  y += 8;
+
+  // Summary
+  doc.setFontSize(9);
+  doc.setTextColor(...GRAY);
+  doc.setFont("helvetica", "normal");
+  const summaryLines = doc.splitTextToSize(plan.summary, contentW);
+  doc.text(summaryLines, margin, y);
+  y += summaryLines.length * 4.5 + 4;
+
+  // Schedule pills
+  doc.setFillColor(...LIGHT_GREEN_BG);
+  doc.roundedRect(margin, y, contentW / 2 - 2, 8, 2, 2, "F");
+  doc.setFontSize(8);
+  doc.setTextColor(...GREEN);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Schedule: ${plan.schedule?.join(", ")}`, margin + 3, y + 5.5);
+  doc.setFillColor(239, 246, 255);
+  doc.roundedRect(margin + contentW / 2 + 2, y, contentW / 2 - 2, 8, 2, 2, "F");
+  doc.setTextColor(29, 78, 216);
+  doc.text(`Duration: ${plan.weeks} weeks`, margin + contentW / 2 + 5, y + 5.5);
+  y += 14;
+
+  // Phase breakdown
+  if (plan.weeks_breakdown) {
+    checkPage(20);
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(margin, y, contentW, plan.weeks_breakdown.length * 9 + 10, 3, 3, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    doc.setFont("helvetica", "bold");
+    doc.text("PROGRAM PHASES", margin + 4, y + 6);
+    y += 10;
+    plan.weeks_breakdown.forEach((p, i) => {
+      doc.setFillColor(...GREEN);
+      doc.circle(margin + 7, y + 2.5, 3, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text(String(i + 1), margin + 5.8, y + 4);
+      doc.setTextColor(...DARK);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text(p.phase, margin + 13, y + 3);
+      doc.setTextColor(...GRAY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      const focusLines = doc.splitTextToSize(p.focus, contentW - 20);
+      doc.text(focusLines, margin + 13, y + 7);
+      y += focusLines.length * 4 + 6;
+    });
+    y += 4;
+  }
+
+  // Workouts
+  plan.workouts?.forEach(w => {
+    checkPage(40);
+
+    // Day header
+    doc.setFillColor(...GREEN);
+    doc.roundedRect(margin, y, contentW, 10, 2, 2, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${w.day.toUpperCase()} — ${w.name}`, margin + 4, y + 7);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(w.duration, pageW - margin - doc.getTextWidth(w.duration) - 4, y + 7);
+    y += 13;
+
+    // Warmup
+    checkPage(10);
+    doc.setFillColor(255, 251, 235);
+    const warmupLines = doc.splitTextToSize(`Warm-up: ${w.warmup}`, contentW - 8);
+    doc.roundedRect(margin, y, contentW, warmupLines.length * 4.5 + 6, 2, 2, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(146, 64, 14);
+    doc.setFont("helvetica", "bold");
+    doc.text("WARM-UP", margin + 3, y + 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    const warmupTextLines = doc.splitTextToSize(w.warmup, contentW - 24);
+    doc.text(warmupTextLines, margin + 20, y + 5);
+    y += warmupTextLines.length * 4.5 + 8;
+
+    // Exercises
+    w.exercises?.forEach((ex, i) => {
+      checkPage(12);
+      doc.setFillColor(i % 2 === 0 ? 249 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 251 : 255);
+      const noteLines = ex.note ? doc.splitTextToSize(ex.note, contentW - 40) : [];
+      const rowH = 10 + (noteLines.length > 0 ? noteLines.length * 3.5 + 2 : 0);
+      doc.roundedRect(margin, y, contentW, rowH, 1.5, 1.5, "F");
+
+      // Number circle
+      doc.setFillColor(229, 231, 235);
+      doc.circle(margin + 6, y + 5, 4, "F");
+      doc.setFontSize(7);
+      doc.setTextColor(55, 65, 81);
+      doc.setFont("helvetica", "bold");
+      doc.text(String(i + 1), margin + 4.5, y + 6.5);
+
+      // Exercise name
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DARK);
+      doc.setFont("helvetica", "bold");
+      doc.text(ex.name, margin + 13, y + 5.5);
+
+      // Note
+      if (ex.note) {
+        doc.setFontSize(7);
+        doc.setTextColor(...GRAY);
+        doc.setFont("helvetica", "normal");
+        doc.text(noteLines, margin + 13, y + 9.5);
+      }
+
+      // Sets x reps
+      doc.setFontSize(8.5);
+      doc.setTextColor(...GREEN);
+      doc.setFont("helvetica", "bold");
+      const setsText = `${ex.sets}×${ex.reps}`;
+      doc.text(setsText, pageW - margin - 24, y + 5.5);
+      doc.setFontSize(7);
+      doc.setTextColor(...GRAY);
+      doc.setFont("helvetica", "normal");
+      doc.text(ex.rest, pageW - margin - 20, y + 9.5);
+
+      y += rowH + 1.5;
+    });
+
+    // Cooldown
+    checkPage(10);
+    doc.setFillColor(240, 253, 244);
+    const cooldownLines = doc.splitTextToSize(w.cooldown, contentW - 24);
+    doc.roundedRect(margin, y, contentW, cooldownLines.length * 4.5 + 6, 2, 2, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(22, 101, 52);
+    doc.setFont("helvetica", "bold");
+    doc.text("COOL-DOWN", margin + 3, y + 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text(cooldownLines, margin + 22, y + 5);
+    y += cooldownLines.length * 4.5 + 10;
+  });
+
+  // Nutrition tips
+  if (plan.nutrition_tips) {
+    checkPage(30);
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(margin, y, contentW, plan.nutrition_tips.length * 8 + 12, 3, 3, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    doc.setFont("helvetica", "bold");
+    doc.text("NUTRITION TIPS", margin + 4, y + 7);
+    y += 11;
+    plan.nutrition_tips.forEach(tip => {
+      doc.setFillColor(...GREEN);
+      doc.circle(margin + 7, y + 2, 1.5, "F");
+      doc.setFontSize(8);
+      doc.setTextColor(...DARK);
+      doc.setFont("helvetica", "normal");
+      const tipLines = doc.splitTextToSize(tip, contentW - 16);
+      doc.text(tipLines, margin + 11, y + 3);
+      y += tipLines.length * 4.5 + 2;
+    });
+    y += 6;
+  }
+
+  // Motivation + check-in
+  if (plan.motivation_strategy) {
+    checkPage(20);
+    doc.setFillColor(...LIGHT_GREEN_BG);
+    const motLines = doc.splitTextToSize(plan.motivation_strategy, contentW - 8);
+    doc.roundedRect(margin, y, contentW, motLines.length * 4.5 + 12, 3, 3, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(...GREEN);
+    doc.setFont("helvetica", "bold");
+    doc.text("MOTIVATION STRATEGY", margin + 4, y + 6);
+    doc.setFontSize(8);
+    doc.setTextColor(21, 128, 61);
+    doc.setFont("helvetica", "normal");
+    doc.text(motLines, margin + 4, y + 11);
+    y += motLines.length * 4.5 + 16;
+  }
+
+  if (plan.weekly_checkin) {
+    checkPage(20);
+    doc.setFillColor(239, 246, 255);
+    const checkLines = doc.splitTextToSize(plan.weekly_checkin, contentW - 8);
+    doc.roundedRect(margin, y, contentW, checkLines.length * 4.5 + 12, 3, 3, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(29, 78, 216);
+    doc.setFont("helvetica", "bold");
+    doc.text("WEEKLY CHECK-IN", margin + 4, y + 6);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(checkLines, margin + 4, y + 11);
+    y += checkLines.length * 4.5 + 16;
+  }
+
+  // Footer
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY);
+  doc.setFont("helvetica", "normal");
+  doc.text("Generated by FitPlan AI · Adjust intensity to your level · Consult a doctor before starting any new fitness program", margin, 287);
+
+  doc.save(`${plan.title.replace(/[^a-z0-9]/gi, "_")}.pdf`);
+};
+
 const HOME_EQUIPMENT_OPTIONS = [
   { id: "barbell", label: "Barbell & plates" },
   { id: "dumbbells", label: "Dumbbells" },
@@ -228,9 +484,14 @@ export default function FitnessPlanGenerator() {
           <div style={{ fontSize: "0.68rem", color: "#9CA3AF", fontWeight: 500 }}>Powered by Claude</div>
         </div>
         {plan && (
-          <button onClick={() => setPlan(null)} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
-            ← New Plan
-          </button>
+          <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem" }}>
+            <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
+              ↓ Download Plan
+            </button>
+            <button onClick={() => setPlan(null)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+              ← New Plan
+            </button>
+          </div>
         )}
       </div>
 
