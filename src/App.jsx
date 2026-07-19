@@ -550,7 +550,7 @@ export default function FitnessPlanGenerator() {
             <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
             <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
           </div>
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.25rem", letterSpacing: "-0.02em" }}>{authMode === "login" ? "Welcome back" : "Create account"}</h2>
+          <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.25rem", letterSpacing: "-0.02em", color: "#111827" }}>{authMode === "login" ? "Welcome back" : "Create account"}</h2>
           <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.5rem" }}>{authMode === "login" ? "Sign in to access your plans" : "Start your fitness journey"}</p>
           <input type="email" placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} style={{ ...inputStyle, marginBottom: "0.75rem", display: "block" }} />
           <input type="password" placeholder="Password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} style={{ ...inputStyle, marginBottom: "1rem", display: "block" }} />
@@ -627,7 +627,7 @@ export default function FitnessPlanGenerator() {
         {!plan && !loading && (
           <>
             <div style={{ marginBottom: "1.75rem" }}>
-              <h1 style={{ fontSize: "1.65rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem" }}>Your plan. Your life.</h1>
+              <h1 style={{ fontSize: "1.65rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem", color: "#111827" }}>Your plan. Your life.</h1>
               <p style={{ color: "#6B7280", fontSize: "0.92rem", margin: 0, lineHeight: 1.65 }}>The more specific you are, the more personal your plan will be.</p>
             </div>
             <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #E5E7EB", padding: "1.6rem" }}>
@@ -677,7 +677,7 @@ export default function FitnessPlanGenerator() {
         {plan && (
           <div>
             <div style={{ marginBottom: "1.5rem" }}>
-              <h2 style={{ fontSize: "1.4rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem" }}>{plan.title}</h2>
+              <h2 style={{ fontSize: "1.4rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem", color: "#111827" }}>{plan.title}</h2>
               <p style={{ color: "#6B7280", fontSize: "0.9rem", lineHeight: 1.65, margin: "0 0 1rem" }}>{plan.summary}</p>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
                 <span style={{ ...pillStyle, background: "#F0FDF4", color: "#15803D" }}>📅 {plan.schedule?.join(", ")}</span>
