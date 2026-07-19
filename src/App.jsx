@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const loadJsPDF = () => new Promise((resolve, reject) => {
   if (window.jspdf) { resolve(window.jspdf.jsPDF); return; }
@@ -440,6 +446,15 @@ const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentCh
 };
 
 export default function FitnessPlanGenerator() {
+  const [session, setSession] = useState(null);
+  const [authMode, setAuthMode] = useState("login"); // "login" | "signup"
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [savedPlans, setSavedPlans] = useState([]);
+  const [showSavedPlans, setShowSavedPlans] = useState(false);
+
   const [form, setForm] = useState({
     goal: "", target: "", days: "4", specificDays: "", time: "45", trainTime: "morning",
     level: "beginner", excuse: "", pastAttempts: "",
@@ -451,6 +466,48 @@ export default function FitnessPlanGenerator() {
   const [error, setError] = useState("");
   const [activeWorkout, setActiveWorkout] = useState(0);
   const [selectedExercise, setSelectedExercise] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (session) loadSavedPlans();
+  }, [session]);
+
+  const loadSavedPlans = async () => {
+    const { data } = await supabase.from("plans").select("id, title, created_at").order("created_at", { ascending: false });
+    if (data) setSavedPlans(data);
+  };
+
+  const savePlan = async (planData) => {
+    if (!session) return;
+    await supabase.from("plans").insert({ user_id: session.user.id, title: planData.title, plan_data: planData });
+    loadSavedPlans();
+  };
+
+  const loadPlan = async (id) => {
+    const { data } = await supabase.from("plans").select("plan_data").eq("id", id).single();
+    if (data) { setPlan(data.plan_data); setShowSavedPlans(false); setActiveWorkout(0); }
+  };
+
+  const deletePlan = async (id) => {
+    await supabase.from("plans").delete().eq("id", id);
+    loadSavedPlans();
+  };
+
+  const handleAuth = async () => {
+    setAuthLoading(true); setAuthError("");
+    const { error } = authMode === "login"
+      ? await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword })
+      : await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    if (error) setAuthError(error.message);
+    setAuthLoading(false);
+  };
+
+  const handleSignOut = async () => { await supabase.auth.signOut(); setPlan(null); };
 
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
@@ -477,6 +534,7 @@ export default function FitnessPlanGenerator() {
       const parsed = JSON.parse(clean);
       setPlan(parsed);
       setActiveWorkout(0);
+      if (session) await savePlan(parsed);
     } catch (e) {
       setError("Something went wrong generating the plan. Please try again.");
     } finally {
@@ -484,25 +542,86 @@ export default function FitnessPlanGenerator() {
     }
   };
 
+  if (!session) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #E5E7EB", padding: "2rem", width: "100%", maxWidth: 380 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "1.5rem" }}>
+            <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
+            <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
+          </div>
+          <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.25rem", letterSpacing: "-0.02em" }}>{authMode === "login" ? "Welcome back" : "Create account"}</h2>
+          <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.5rem" }}>{authMode === "login" ? "Sign in to access your plans" : "Start your fitness journey"}</p>
+          <input type="email" placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} style={{ ...inputStyle, marginBottom: "0.75rem", display: "block" }} />
+          <input type="password" placeholder="Password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} style={{ ...inputStyle, marginBottom: "1rem", display: "block" }} />
+          {authError && <p style={{ color: "#DC2626", fontSize: "0.82rem", margin: "0 0 0.75rem" }}>{authError}</p>}
+          <button onClick={handleAuth} disabled={authLoading} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", marginBottom: "1rem" }}>
+            {authLoading ? "..." : authMode === "login" ? "Sign In" : "Sign Up"}
+          </button>
+          <p style={{ fontSize: "0.82rem", color: "#6B7280", textAlign: "center", margin: 0 }}>
+            {authMode === "login" ? "Don't have an account? " : "Already have an account? "}
+            <span onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }} style={{ color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
+              {authMode === "login" ? "Sign up" : "Sign in"}
+            </span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
+
       <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
         <div>
           <div style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em" }}>FitPlan AI</div>
           <div style={{ fontSize: "0.68rem", color: "#9CA3AF", fontWeight: 500 }}>Powered by Claude</div>
         </div>
-        {plan && (
-          <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem" }}>
-            <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
-              ↓ Download Plan
+        <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {savedPlans.length > 0 && (
+            <button onClick={() => setShowSavedPlans(!showSavedPlans)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+              📋 My Plans ({savedPlans.length})
             </button>
-            <button onClick={() => setPlan(null)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
-              ← New Plan
-            </button>
-          </div>
-        )}
+          )}
+          {plan && (
+            <>
+              <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
+                ↓ Download
+              </button>
+              <button onClick={() => setPlan(null)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+                ← New Plan
+              </button>
+            </>
+          )}
+          <button onClick={handleSignOut} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+            Sign out
+          </button>
+        </div>
       </div>
+
+      {/* Saved plans panel */}
+      {showSavedPlans && (
+        <div style={{ maxWidth: 720, margin: "1rem auto", padding: "0 1.25rem" }}>
+          <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.25rem" }}>
+            <h3 style={{ fontSize: "0.9rem", fontWeight: 800, margin: "0 0 1rem", letterSpacing: "-0.01em" }}>My Saved Plans</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {savedPlans.map(p => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.85rem", background: "#F9FAFB", borderRadius: "8px", border: "1px solid #F3F4F6" }}>
+                  <div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#111827" }}>{p.title}</div>
+                    <div style={{ fontSize: "0.72rem", color: "#9CA3AF" }}>{new Date(p.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.4rem" }}>
+                    <button onClick={() => loadPlan(p.id)} style={{ padding: "0.3rem 0.7rem", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "6px", fontSize: "0.78rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>Load</button>
+                    <button onClick={() => deletePlan(p.id)} style={{ padding: "0.3rem 0.7rem", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "6px", fontSize: "0.78rem", color: "#DC2626", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "1.75rem 1.25rem 3rem" }}>
         {!plan && !loading && (
