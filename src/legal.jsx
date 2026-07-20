@@ -1,4 +1,4 @@
-const LAST_UPDATED = "July 20, 2025";
+const LAST_UPDATED = "July 20, 2026";
 const CONTACT_EMAIL = "fitplanai.support@gmail.com";
 
 export const TermsOfService = () => (
