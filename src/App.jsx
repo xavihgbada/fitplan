@@ -697,6 +697,11 @@ export default function FitnessPlanGenerator() {
                 Generate My 8-Week Plan →
               </button>
             </div>
+            <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", marginTop: "1rem" }}>
+              <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
+              {" · "}
+              <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+            </p>
           </>
         )}
 
