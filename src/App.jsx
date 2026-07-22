@@ -499,6 +499,7 @@ export default function FitnessPlanGenerator() {
 
   // --- Check-in feature state ---
   const [planId, setPlanId] = useState(null);
+  const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [checkins, setCheckins] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(1);
   const [showCheckIn, setShowCheckIn] = useState(false);
@@ -528,7 +529,7 @@ export default function FitnessPlanGenerator() {
       .insert({ user_id: session.user.id, title: planData.title, plan_data: planData })
       .select()
       .single();
-    if (data) setPlanId(data.id);
+    if (data) { setPlanId(data.id); setPlanCreatedAt(data.created_at); }
     loadSavedPlans();
   };
 
@@ -543,10 +544,11 @@ export default function FitnessPlanGenerator() {
   };
 
   const loadPlan = async (id) => {
-    const { data } = await supabase.from("plans").select("plan_data").eq("id", id).single();
+    const { data } = await supabase.from("plans").select("plan_data, created_at").eq("id", id).single();
     if (data) {
       setPlan(data.plan_data);
       setPlanId(id);
+      setPlanCreatedAt(data.created_at);
       setShowSavedPlans(false);
       setActiveWorkout(0);
       loadCheckins(id);
@@ -595,6 +597,7 @@ export default function FitnessPlanGenerator() {
       setPlan(parsed);
       setActiveWorkout(0);
       setPlanId(null);
+      setPlanCreatedAt(new Date().toISOString());
       setCheckins([]);
       setCurrentWeek(1);
       if (session) await savePlan(parsed);
@@ -606,13 +609,24 @@ export default function FitnessPlanGenerator() {
   };
 
   // --- Check-in handlers ---
+  const lastActivityDate = checkins.length > 0
+    ? new Date(checkins[checkins.length - 1].created_at)
+    : planCreatedAt ? new Date(planCreatedAt) : null;
+  const nextCheckInDate = lastActivityDate
+    ? new Date(lastActivityDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+    : null;
+  const canCheckIn = nextCheckInDate ? new Date() >= nextCheckInDate : false;
+  const daysUntilCheckIn = nextCheckInDate
+    ? Math.max(1, Math.ceil((nextCheckInDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : 0;
+
   const toggleExerciseDone = (day, exerciseName) => {
     const key = `${day}::${exerciseName}`;
     setCheckInState(p => ({ ...p, [key]: !p[key] }));
   };
 
   const submitCheckIn = async () => {
-    if (!planId) return;
+    if (!planId || !canCheckIn) return;
     setAdjusting(true);
     try {
       const completed_exercises = {};
@@ -743,9 +757,15 @@ export default function FitnessPlanGenerator() {
             </button>
           )}
           {plan && planId && (
-            <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600 }}>
-              ✓ Week {currentWeek} check-in
-            </button>
+            canCheckIn ? (
+              <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600 }}>
+                ✓ Week {currentWeek} check-in
+              </button>
+            ) : (
+              <span title="Give the plan a full week before checking in" style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "#F9FAFB", fontSize: "0.82rem", color: "#9CA3AF", fontWeight: 600 }}>
+                Check-in in {daysUntilCheckIn} day{daysUntilCheckIn === 1 ? "" : "s"}
+              </span>
+            )
           )}
           {plan && (
             <>
