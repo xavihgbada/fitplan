@@ -47,7 +47,6 @@ const exportToPDF = async (plan) => {
     }
   };
 
-  // Header bar
   doc.setFillColor(...GREEN);
   doc.rect(0, 0, pageW, 28, "F");
   doc.setFontSize(18);
@@ -59,14 +58,12 @@ const exportToPDF = async (plan) => {
   doc.text("Powered by Claude · fitplan-lake.vercel.app", margin, 20);
   y = 38;
 
-  // Plan title
   doc.setFontSize(16);
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.text(plan.title, margin, y);
   y += 8;
 
-  // Summary
   doc.setFontSize(9);
   doc.setTextColor(...GRAY);
   doc.setFont("helvetica", "normal");
@@ -74,7 +71,6 @@ const exportToPDF = async (plan) => {
   doc.text(summaryLines, margin, y);
   y += summaryLines.length * 4.5 + 4;
 
-  // Schedule pills
   doc.setFillColor(...LIGHT_GREEN_BG);
   doc.roundedRect(margin, y, contentW / 2 - 2, 8, 2, 2, "F");
   doc.setFontSize(8);
@@ -87,7 +83,6 @@ const exportToPDF = async (plan) => {
   doc.text(`Duration: ${plan.weeks} weeks`, margin + contentW / 2 + 5, y + 5.5);
   y += 14;
 
-  // Phase breakdown
   if (plan.weeks_breakdown) {
     checkPage(20);
     doc.setFillColor(249, 250, 251);
@@ -118,11 +113,9 @@ const exportToPDF = async (plan) => {
     y += 4;
   }
 
-  // Workouts
   plan.workouts?.forEach(w => {
     checkPage(40);
 
-    // Day header
     doc.setFillColor(...GREEN);
     doc.roundedRect(margin, y, contentW, 10, 2, 2, "F");
     doc.setFontSize(10);
@@ -134,7 +127,6 @@ const exportToPDF = async (plan) => {
     doc.text(w.duration, pageW - margin - doc.getTextWidth(w.duration) - 4, y + 7);
     y += 13;
 
-    // Warmup
     checkPage(10);
     doc.setFillColor(255, 251, 235);
     const warmupLines = doc.splitTextToSize(`Warm-up: ${w.warmup}`, contentW - 8);
@@ -149,7 +141,6 @@ const exportToPDF = async (plan) => {
     doc.text(warmupTextLines, margin + 20, y + 5);
     y += warmupTextLines.length * 4.5 + 8;
 
-    // Exercises
     w.exercises?.forEach((ex, i) => {
       checkPage(12);
       doc.setFillColor(i % 2 === 0 ? 249 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 251 : 255);
@@ -157,7 +148,6 @@ const exportToPDF = async (plan) => {
       const rowH = 10 + (noteLines.length > 0 ? noteLines.length * 3.5 + 2 : 0);
       doc.roundedRect(margin, y, contentW, rowH, 1.5, 1.5, "F");
 
-      // Number circle
       doc.setFillColor(229, 231, 235);
       doc.circle(margin + 6, y + 5, 4, "F");
       doc.setFontSize(7);
@@ -165,13 +155,11 @@ const exportToPDF = async (plan) => {
       doc.setFont("helvetica", "bold");
       doc.text(String(i + 1), margin + 4.5, y + 6.5);
 
-      // Exercise name
       doc.setFontSize(8.5);
       doc.setTextColor(...DARK);
       doc.setFont("helvetica", "bold");
       doc.text(ex.name, margin + 13, y + 5.5);
 
-      // Note
       if (ex.note) {
         doc.setFontSize(7);
         doc.setTextColor(...GRAY);
@@ -179,7 +167,6 @@ const exportToPDF = async (plan) => {
         doc.text(noteLines, margin + 13, y + 9.5);
       }
 
-      // Sets x reps
       doc.setFontSize(8.5);
       doc.setTextColor(...GREEN);
       doc.setFont("helvetica", "bold");
@@ -193,7 +180,6 @@ const exportToPDF = async (plan) => {
       y += rowH + 1.5;
     });
 
-    // Cooldown
     checkPage(10);
     doc.setFillColor(240, 253, 244);
     const cooldownLines = doc.splitTextToSize(w.cooldown, contentW - 24);
@@ -208,7 +194,6 @@ const exportToPDF = async (plan) => {
     y += cooldownLines.length * 4.5 + 10;
   });
 
-  // Nutrition tips
   if (plan.nutrition_tips) {
     checkPage(30);
     doc.setFillColor(249, 250, 251);
@@ -231,7 +216,6 @@ const exportToPDF = async (plan) => {
     y += 6;
   }
 
-  // Motivation + check-in
   if (plan.motivation_strategy) {
     checkPage(20);
     doc.setFillColor(...LIGHT_GREEN_BG);
@@ -263,7 +247,6 @@ const exportToPDF = async (plan) => {
     y += checkLines.length * 4.5 + 16;
   }
 
-  // Footer
   doc.setFontSize(7);
   doc.setTextColor(...GRAY);
   doc.setFont("helvetica", "normal");
@@ -333,6 +316,36 @@ MUSCLE GROUP ACCURACY — never mislabel muscle targets:
 - Front delt exercises: overhead press, front raises, incline dumbbell press
 - Always verify that the exercise listed actually trains the muscle group stated`;
 
+const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitness plan based on a client's weekly check-in. Return ONLY a valid JSON object matching this exact structure — no markdown, no explanation:
+
+{
+  "title": "Plan title",
+  "summary": "Updated 2-3 sentence overview",
+  "schedule": ["Monday", "Tuesday", "Thursday", "Saturday"],
+  "weeks": "8",
+  "weeks_breakdown": [ { "phase": "...", "focus": "..." } ],
+  "workouts": [
+    {
+      "day": "Monday", "name": "...", "duration": "45 min", "type": "Strength",
+      "warmup": "...",
+      "exercises": [ { "name": "...", "sets": "3", "reps": "10-12", "rest": "60s", "note": "..." } ],
+      "cooldown": "..."
+    }
+  ],
+  "nutrition_tips": ["..."],
+  "motivation_strategy": "...",
+  "weekly_checkin": "..."
+}
+
+ADJUSTMENT RULES:
+- If an exercise was completed and felt manageable, apply progressive overload: increase reps, sets, or note a weight increase — small increments only.
+- If an exercise was skipped repeatedly, either simplify it, swap it for an easier variation, or address why in the motivation_strategy.
+- Read the client's notes carefully and respond to specifics they mentioned (pain, boredom, time constraints, etc).
+- Keep the same days, equipment constraints, and dislikes as the original plan — do not reintroduce disliked exercises or equipment the client doesn't have.
+- EQUIPMENT RULE — CRITICAL: only assign exercises matching the equipment already established for this client.
+- VOLUME GUIDELINES: Beginner 10-15 sets/muscle/week, Intermediate 12-18, Advanced 16-22. Progressive overload should never push volume outside these ranges in one jump — increase by 1-2 sets max per adjustment.
+- Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).`;
+
 const buildPrompt = (data) => `Create a personalized 8-week fitness plan for:
 
 Goal: ${data.goal}
@@ -355,6 +368,21 @@ Available equipment (ONLY use these): ${
 }
 
 CRITICAL: Do not assign any exercise that requires equipment not listed above. Return only the JSON object.`;
+
+const buildAdjustPrompt = (plan, checkinsHistory) => {
+  const latest = checkinsHistory[checkinsHistory.length - 1];
+  return `Here is the client's current plan:
+${JSON.stringify(plan)}
+
+Here is their check-in history:
+${JSON.stringify(checkinsHistory)}
+
+Their most recent check-in (week ${latest.week_number}) reported:
+Completed/skipped exercises: ${JSON.stringify(latest.completed_exercises)}
+Notes: ${latest.notes || "None"}
+
+Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
+};
 
 const TAG_COLORS = {
   "Strength": { bg: "#EFF6FF", color: "#1D4ED8" },
@@ -469,6 +497,15 @@ export default function FitnessPlanGenerator() {
   const [activeWorkout, setActiveWorkout] = useState(0);
   const [selectedExercise, setSelectedExercise] = useState(null);
 
+  // --- Check-in feature state ---
+  const [planId, setPlanId] = useState(null);
+  const [checkins, setCheckins] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const [checkInState, setCheckInState] = useState({}); // "day::exerciseName" -> true/false
+  const [checkInNotes, setCheckInNotes] = useState("");
+  const [adjusting, setAdjusting] = useState(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
@@ -486,13 +523,34 @@ export default function FitnessPlanGenerator() {
 
   const savePlan = async (planData) => {
     if (!session) return;
-    await supabase.from("plans").insert({ user_id: session.user.id, title: planData.title, plan_data: planData });
+    const { data } = await supabase
+      .from("plans")
+      .insert({ user_id: session.user.id, title: planData.title, plan_data: planData })
+      .select()
+      .single();
+    if (data) setPlanId(data.id);
     loadSavedPlans();
+  };
+
+  const loadCheckins = async (id) => {
+    const { data } = await supabase
+      .from("checkins")
+      .select("*")
+      .eq("plan_id", id)
+      .order("week_number", { ascending: true });
+    setCheckins(data || []);
+    setCurrentWeek((data?.length || 0) + 1);
   };
 
   const loadPlan = async (id) => {
     const { data } = await supabase.from("plans").select("plan_data").eq("id", id).single();
-    if (data) { setPlan(data.plan_data); setShowSavedPlans(false); setActiveWorkout(0); }
+    if (data) {
+      setPlan(data.plan_data);
+      setPlanId(id);
+      setShowSavedPlans(false);
+      setActiveWorkout(0);
+      loadCheckins(id);
+    }
   };
 
   const deletePlan = async (id) => {
@@ -536,11 +594,77 @@ export default function FitnessPlanGenerator() {
       const parsed = JSON.parse(clean);
       setPlan(parsed);
       setActiveWorkout(0);
+      setPlanId(null);
+      setCheckins([]);
+      setCurrentWeek(1);
       if (session) await savePlan(parsed);
     } catch (e) {
       setError("Something went wrong generating the plan. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // --- Check-in handlers ---
+  const toggleExerciseDone = (day, exerciseName) => {
+    const key = `${day}::${exerciseName}`;
+    setCheckInState(p => ({ ...p, [key]: !p[key] }));
+  };
+
+  const submitCheckIn = async () => {
+    if (!planId) return;
+    setAdjusting(true);
+    try {
+      const completed_exercises = {};
+      plan.workouts.forEach(w => {
+        completed_exercises[w.day] = {};
+        w.exercises.forEach(ex => {
+          completed_exercises[w.day][ex.name] = !!checkInState[`${w.day}::${ex.name}`];
+        });
+      });
+
+      const { data: checkinRow } = await supabase
+        .from("checkins")
+        .insert({
+          plan_id: planId,
+          user_id: session.user.id,
+          week_number: currentWeek,
+          completed_exercises,
+          notes: checkInNotes,
+        })
+        .select()
+        .single();
+
+      const history = [...checkins, checkinRow];
+
+      const res = await fetch("/api/adjust-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 8000,
+          system: ADJUST_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: buildAdjustPrompt(plan, history) }],
+        }),
+      });
+      const data = await res.json();
+      const text = data.content?.map(b => b.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const adjustedPlan = JSON.parse(clean);
+
+      await supabase.from("plans").update({ plan_data: adjustedPlan }).eq("id", planId);
+
+      setPlan(adjustedPlan);
+      setCheckins(history);
+      setCurrentWeek(currentWeek + 1);
+      setCheckInState({});
+      setCheckInNotes("");
+      setShowCheckIn(false);
+      setActiveWorkout(0);
+    } catch (e) {
+      setError("Something went wrong adjusting your plan. Please try again.");
+    } finally {
+      setAdjusting(false);
     }
   };
 
@@ -618,6 +742,11 @@ export default function FitnessPlanGenerator() {
               📋 My Plans ({savedPlans.length})
             </button>
           )}
+          {plan && planId && (
+            <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600 }}>
+              ✓ Week {currentWeek} check-in
+            </button>
+          )}
           {plan && (
             <>
               <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
@@ -634,7 +763,6 @@ export default function FitnessPlanGenerator() {
         </div>
       </div>
 
-      {/* Saved plans panel */}
       {showSavedPlans && (
         <div style={{ maxWidth: 720, margin: "1rem auto", padding: "0 1.25rem" }}>
           <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.25rem" }}>
@@ -838,6 +966,40 @@ export default function FitnessPlanGenerator() {
           </div>
         )}
       </div>
+
+      {showCheckIn && plan && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: "14px", maxWidth: 560, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: "1.5rem" }}>
+            <h3 style={{ fontSize: "1.05rem", fontWeight: 800, margin: "0 0 0.25rem" }}>Week {currentWeek} check-in</h3>
+            <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.25rem" }}>Check off what you actually did this week.</p>
+
+            {plan.workouts.map((w, wi) => (
+              <div key={wi} style={{ marginBottom: "1rem" }}>
+                <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#111827", marginBottom: "0.4rem" }}>{w.day} — {w.name}</div>
+                {w.exercises.map((ex, ei) => {
+                  const key = `${w.day}::${ex.name}`;
+                  const done = !!checkInState[key];
+                  return (
+                    <label key={ei} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0", fontSize: "0.83rem", color: "#374151", cursor: "pointer" }}>
+                      <input type="checkbox" checked={done} onChange={() => toggleExerciseDone(w.day, ex.name)} />
+                      {ex.name}
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+
+            <Field label="Anything to add? (pain, boredom, too easy, ran out of time...)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" />
+
+            <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+              <button onClick={() => setShowCheckIn(false)} style={{ flex: 1, padding: "0.65rem", border: "1.5px solid #E5E7EB", borderRadius: "9px", background: "transparent", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={submitCheckIn} disabled={adjusting} style={{ flex: 2, padding: "0.65rem", border: "none", borderRadius: "9px", background: "#16A34A", color: "#fff", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer" }}>
+                {adjusting ? "Adjusting your plan..." : "Submit & adjust next week"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
