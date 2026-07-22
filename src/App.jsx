@@ -772,7 +772,11 @@ export default function FitnessPlanGenerator() {
               <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
                 ↓ Download
               </button>
-              <button onClick={() => setPlan(null)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+              <button onClick={() => {
+                if (window.confirm("Starting a new plan will replace this one. Routines work best when you stick with them and let check-ins adjust them over time, rather than switching often. Continue anyway?")) {
+                  setPlan(null);
+                }
+              }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
                 ← New Plan
               </button>
             </>
