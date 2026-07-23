@@ -1016,7 +1016,7 @@ export default function FitnessPlanGenerator() {
             <Field label="Anything to add? (pain, boredom, too easy, ran out of time...)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" />
 
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
-              <button onClick={() => setShowCheckIn(false)} style={{ flex: 1, padding: "0.65rem", border: "1.5px solid #E5E7EB", borderRadius: "9px", background: "transparent", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setShowCheckIn(false)} style={{ flex: 1, padding: "0.65rem", border: "1.5px solid #E5E7EB", borderRadius: "9px", background: "transparent", color: "#6B7280", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={submitCheckIn} disabled={adjusting} style={{ flex: 2, padding: "0.65rem", border: "none", borderRadius: "9px", background: "#16A34A", color: "#fff", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer" }}>
                 {adjusting ? "Adjusting your plan..." : "Submit & adjust next week"}
               </button>
