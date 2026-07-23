@@ -482,6 +482,14 @@ export default function FitnessPlanGenerator() {
   const [authPassword, setAuthPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
   const [savedPlans, setSavedPlans] = useState([]);
   const [showSavedPlans, setShowSavedPlans] = useState(false);
 
@@ -509,7 +517,10 @@ export default function FitnessPlanGenerator() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -567,6 +578,24 @@ export default function FitnessPlanGenerator() {
       : await supabase.auth.signUp({ email: authEmail, password: authPassword });
     if (error) setAuthError(error.message);
     setAuthLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!authEmail.trim()) { setAuthError("Enter your email above first, then click 'Forgot password?'"); return; }
+    setAuthLoading(true); setAuthError("");
+    const { error } = await supabase.auth.resetPasswordForEmail(authEmail, { redirectTo: window.location.origin });
+    if (error) setAuthError(error.message); else setForgotSent(true);
+    setAuthLoading(false);
+  };
+
+  const handleSetNewPassword = async () => {
+    setResetError("");
+    if (newPassword.length < 6) { setResetError("Password must be at least 6 characters."); return; }
+    if (newPassword !== newPasswordConfirm) { setResetError("Passwords don't match."); return; }
+    setResetLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) setResetError(error.message); else setResetSuccess(true);
+    setResetLoading(false);
   };
 
   const handleSignOut = async () => { await supabase.auth.signOut(); setPlan(null); };
@@ -708,6 +737,39 @@ export default function FitnessPlanGenerator() {
     );
   }
 
+  if (passwordRecovery) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #E5E7EB", padding: "2rem", width: "100%", maxWidth: 380 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "1.5rem" }}>
+            <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
+            <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
+          </div>
+          {resetSuccess ? (
+            <>
+              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.5rem", color: "#111827" }}>Password updated</h2>
+              <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.25rem" }}>You can continue to your account now.</p>
+              <button onClick={() => { setPasswordRecovery(false); setResetSuccess(false); }} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}>
+                Continue to FitPlan AI
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.25rem", color: "#111827" }}>Set a new password</h2>
+              <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.5rem" }}>Choose a new password for your account.</p>
+              <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...inputStyle, marginBottom: "0.75rem", display: "block" }} />
+              <input type="password" placeholder="Confirm new password" value={newPasswordConfirm} onChange={e => setNewPasswordConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSetNewPassword()} style={{ ...inputStyle, marginBottom: "1rem", display: "block" }} />
+              {resetError && <p style={{ color: "#DC2626", fontSize: "0.82rem", margin: "0 0 0.75rem" }}>{resetError}</p>}
+              <button onClick={handleSetNewPassword} disabled={resetLoading} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}>
+                {resetLoading ? "..." : "Set new password"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -724,6 +786,15 @@ export default function FitnessPlanGenerator() {
           <button onClick={handleAuth} disabled={authLoading} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", marginBottom: "1rem" }}>
             {authLoading ? "..." : authMode === "login" ? "Sign In" : "Sign Up"}
           </button>
+          {authMode === "login" && (
+            forgotSent ? (
+              <p style={{ fontSize: "0.8rem", color: "#16A34A", textAlign: "center", margin: "0 0 1rem" }}>Check your email for a reset link.</p>
+            ) : (
+              <p style={{ fontSize: "0.8rem", textAlign: "center", margin: "0 0 1rem" }}>
+                <span onClick={handleForgotPassword} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Forgot password?</span>
+              </p>
+            )
+          )}
           <p style={{ fontSize: "0.82rem", color: "#6B7280", textAlign: "center", margin: 0 }}>
             {authMode === "login" ? "Don't have an account? " : "Already have an account? "}
             <span onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }} style={{ color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
