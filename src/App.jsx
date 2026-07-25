@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TermsOfService, PrivacyPolicy } from "./legal";
 
@@ -502,6 +502,8 @@ export default function FitnessPlanGenerator() {
     otherActivity: ""
   });
   const [plan, setPlan] = useState(null);
+  const planRef = useRef(null);
+  useEffect(() => { planRef.current = plan; }, [plan]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeWorkout, setActiveWorkout] = useState(0);
@@ -509,6 +511,8 @@ export default function FitnessPlanGenerator() {
 
   // --- Check-in feature state ---
   const [planId, setPlanId] = useState(null);
+  const planIdRef = useRef(null);
+  useEffect(() => { planIdRef.current = planId; }, [planId]);
   const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [checkins, setCheckins] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(1);
@@ -537,7 +541,21 @@ export default function FitnessPlanGenerator() {
       let attempts = 0;
       const interval = setInterval(async () => {
         attempts++;
-        await loadProfile();
+        const data = await loadProfile();
+        if (data?.has_paid) {
+          clearInterval(interval);
+          if (planRef.current && !planIdRef.current) {
+            await savePlan(planRef.current);
+            await fetch("/api/track-generation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: session.user.id }),
+            });
+            loadProfile();
+            localStorage.removeItem("fitplan_pending_plan");
+          }
+          return;
+        }
         if (attempts >= 5) clearInterval(interval);
       }, 1500);
       return () => clearInterval(interval);
@@ -563,13 +581,14 @@ export default function FitnessPlanGenerator() {
   }, [session, profile]);
 
   const loadProfile = async () => {
-    if (!session) return;
+    if (!session) return null;
     let { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     if (!data) {
       const { data: created } = await supabase.from("profiles").insert({ id: session.user.id }).select().single();
       data = created;
     }
     setProfile(data);
+    return data;
   };
 
   const startCheckout = async (type) => {
