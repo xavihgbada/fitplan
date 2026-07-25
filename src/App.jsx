@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TermsOfService, PrivacyPolicy } from "./legal";
 
@@ -502,8 +502,6 @@ export default function FitnessPlanGenerator() {
     otherActivity: ""
   });
   const [plan, setPlan] = useState(null);
-  const planRef = useRef(null);
-  useEffect(() => { planRef.current = plan; }, [plan]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeWorkout, setActiveWorkout] = useState(0);
@@ -511,8 +509,6 @@ export default function FitnessPlanGenerator() {
 
   // --- Check-in feature state ---
   const [planId, setPlanId] = useState(null);
-  const planIdRef = useRef(null);
-  useEffect(() => { planIdRef.current = planId; }, [planId]);
   const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [checkins, setCheckins] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(1);
@@ -544,15 +540,25 @@ export default function FitnessPlanGenerator() {
         const data = await loadProfile();
         if (data?.has_paid) {
           clearInterval(interval);
-          if (planRef.current && !planIdRef.current) {
-            await savePlan(planRef.current);
-            await fetch("/api/track-generation", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: session.user.id }),
-            });
-            loadProfile();
-            localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
+          const key = `fitplan_pending_plan_${session.user.id}`;
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            try {
+              const { plan: pendingPlan } = JSON.parse(raw);
+              setPlan(pendingPlan);
+              setActiveWorkout(0);
+              await savePlan(pendingPlan);
+              await fetch("/api/track-generation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: session.user.id }),
+              });
+              loadProfile();
+            } catch (e) {
+              // nothing valid to restore — user will just see the generator screen
+            } finally {
+              localStorage.removeItem(key);
+            }
           }
           return;
         }
