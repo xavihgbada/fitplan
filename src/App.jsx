@@ -309,6 +309,10 @@ VOLUME GUIDELINES — calibrate total weekly sets per muscle group to fitness le
 - Advanced: 16-22 sets per muscle group per week
 If the user requests emphasis on a specific muscle group, add 2-4 sets above their baseline spread across the week — never spike volume disproportionately in a single session. Only exceed these ranges if the user explicitly requests a specialization or high-volume program.
 
+SESSION BALANCE — CRITICAL: within a single session, never let more than 2 of the exercises target the same primary muscle group unless the user explicitly requested a specialization day for that muscle. This matters most for low-frequency plans (2-3 gym days/week, especially when complementing other activities like classes or sports) — these sessions should train multiple muscle groups in a balanced, close-to-full-body way rather than concentrating on one area. Check your own exercise list against this rule before finalizing the plan.
+
+CORE/ABS — CRITICAL: every single workout in the plan must include at least one direct core/abs exercise (e.g. planks, hanging leg raises, cable crunches, dead bugs) as a normal part of the exercise list, not an optional add-on. Account for this within the person's stated session duration — if time is tight, trim rest periods or drop an accessory exercise elsewhere rather than omitting core work.
+
 MUSCLE GROUP ACCURACY — never mislabel muscle targets:
 - Medial (lateral) delt exercises: lateral raises, cable lateral raises, machine lateral raises
 - Rear delt exercises: face pulls, reverse flies, bent-over lateral raises, barbell upright rows
@@ -344,6 +348,8 @@ ADJUSTMENT RULES:
 - Keep the same days, equipment constraints, and dislikes as the original plan — do not reintroduce disliked exercises or equipment the client doesn't have.
 - EQUIPMENT RULE — CRITICAL: only assign exercises matching the equipment already established for this client.
 - VOLUME GUIDELINES: Beginner 10-15 sets/muscle/week, Intermediate 12-18, Advanced 16-22. Progressive overload should never push volume outside these ranges in one jump — increase by 1-2 sets max per adjustment.
+- SESSION BALANCE — CRITICAL: never let more than 2 exercises in a single session target the same primary muscle group, unless the original plan was an explicit specialization day. This matters most for low-frequency plans (2-3 days/week).
+- CORE/ABS — CRITICAL: every workout in the adjusted plan must keep at least one direct core/abs exercise, even when adjusting other exercises around it.
 - Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).`;
 
 const buildPrompt = (data) => `Create a personalized 8-week fitness plan for:
