@@ -552,7 +552,7 @@ export default function FitnessPlanGenerator() {
               body: JSON.stringify({ userId: session.user.id }),
             });
             loadProfile();
-            localStorage.removeItem("fitplan_pending_plan");
+            localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
           }
           return;
         }
@@ -564,17 +564,17 @@ export default function FitnessPlanGenerator() {
 
   useEffect(() => {
     if (session && profile && !profile.has_paid && !plan) {
-      const raw = localStorage.getItem("fitplan_pending_plan");
+      const raw = localStorage.getItem(`fitplan_pending_plan_${session.user.id}`);
       if (raw) {
         try {
           const { plan: savedPlan, createdAt } = JSON.parse(raw);
           if (Date.now() - createdAt < 24 * 60 * 60 * 1000) {
             setPlan(savedPlan);
           } else {
-            localStorage.removeItem("fitplan_pending_plan");
+            localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
           }
         } catch (e) {
-          localStorage.removeItem("fitplan_pending_plan");
+          localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
         }
       }
     }
@@ -722,9 +722,9 @@ export default function FitnessPlanGenerator() {
           body: JSON.stringify({ userId: session.user.id }),
         });
         loadProfile();
-        localStorage.removeItem("fitplan_pending_plan");
+        localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
       } else {
-        localStorage.setItem("fitplan_pending_plan", JSON.stringify({ plan: parsed, createdAt: Date.now() }));
+        localStorage.setItem(`fitplan_pending_plan_${session.user.id}`, JSON.stringify({ plan: parsed, createdAt: Date.now() }));
       }
     } catch (e) {
       setError("Something went wrong generating the plan. Please try again.");
@@ -955,7 +955,7 @@ export default function FitnessPlanGenerator() {
           )}
           {plan && !profile?.has_paid && (
             <button onClick={() => {
-              localStorage.removeItem("fitplan_pending_plan");
+              localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
               setPlan(null);
             }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
               ← New Plan
