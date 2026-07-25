@@ -492,6 +492,8 @@ export default function FitnessPlanGenerator() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [savedPlans, setSavedPlans] = useState([]);
   const [showSavedPlans, setShowSavedPlans] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [checkingOut, setCheckingOut] = useState(null); // "unlock" | "extra_generation" | null
 
   const [form, setForm] = useState({
     goal: "", target: "", days: "4", specificDays: "", time: "45", trainTime: "morning",
@@ -525,8 +527,68 @@ export default function FitnessPlanGenerator() {
   }, []);
 
   useEffect(() => {
-    if (session) loadSavedPlans();
+    if (session) { loadSavedPlans(); loadProfile(); }
   }, [session]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success" && session) {
+      window.history.replaceState({}, "", window.location.pathname);
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        attempts++;
+        await loadProfile();
+        if (attempts >= 5) clearInterval(interval);
+      }, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (session && profile && !profile.has_paid && !plan) {
+      const raw = localStorage.getItem("fitplan_pending_plan");
+      if (raw) {
+        try {
+          const { plan: savedPlan, createdAt } = JSON.parse(raw);
+          if (Date.now() - createdAt < 24 * 60 * 60 * 1000) {
+            setPlan(savedPlan);
+          } else {
+            localStorage.removeItem("fitplan_pending_plan");
+          }
+        } catch (e) {
+          localStorage.removeItem("fitplan_pending_plan");
+        }
+      }
+    }
+  }, [session, profile]);
+
+  const loadProfile = async () => {
+    if (!session) return;
+    let { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    if (!data) {
+      const { data: created } = await supabase.from("profiles").insert({ id: session.user.id }).select().single();
+      data = created;
+    }
+    setProfile(data);
+  };
+
+  const startCheckout = async (type) => {
+    if (!session) return;
+    setCheckingOut(type);
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: session.user.id, type }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else { setError("Could not start checkout. Please try again."); setCheckingOut(null); }
+    } catch (e) {
+      setError("Could not start checkout. Please try again.");
+      setCheckingOut(null);
+    }
+  };
 
   const loadSavedPlans = async () => {
     const { data } = await supabase.from("plans").select("id, title, created_at").order("created_at", { ascending: false });
@@ -609,9 +671,13 @@ export default function FitnessPlanGenerator() {
     window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
   };
 
+  const totalAllowedGenerations = 3 + (profile?.generation_credits || 0);
+  const atGenerationLimit = profile?.has_paid && (profile?.plans_generated || 0) >= totalAllowedGenerations;
+
   const generate = async () => {
     if (!form.goal.trim() || !form.excuse.trim()) { setError("Please fill in your goal and main challenge."); return; }
     if (!form.equipmentLocation) { setError("Please select where you train."); return; }
+    if (atGenerationLimit) { setError("You've used your included generations."); return; }
     setError(""); setLoading(true); setPlan(null);
     try {
       const res = await fetch("/api/generate-plan", {
@@ -629,7 +695,18 @@ export default function FitnessPlanGenerator() {
       setPlanCreatedAt(new Date().toISOString());
       setCheckins([]);
       setCurrentWeek(1);
-      if (session) await savePlan(parsed);
+      if (session && profile?.has_paid) {
+        await savePlan(parsed);
+        await fetch("/api/track-generation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: session.user.id }),
+        });
+        loadProfile();
+        localStorage.removeItem("fitplan_pending_plan");
+      } else {
+        localStorage.setItem("fitplan_pending_plan", JSON.stringify({ plan: parsed, createdAt: Date.now() }));
+      }
     } catch (e) {
       setError("Something went wrong generating the plan. Please try again.");
     } finally {
@@ -822,12 +899,12 @@ export default function FitnessPlanGenerator() {
           <div style={{ fontSize: "0.68rem", color: "#9CA3AF", fontWeight: 500 }}>Powered by Claude</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          {savedPlans.length > 0 && (
+          {profile?.has_paid && savedPlans.length > 0 && (
             <button onClick={() => setShowSavedPlans(!showSavedPlans)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
               📋 My Plans ({savedPlans.length})
             </button>
           )}
-          {plan && planId && (
+          {profile?.has_paid && plan && planId && (
             canCheckIn ? (
               <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600 }}>
                 ✓ Week {currentWeek} check-in
@@ -838,7 +915,12 @@ export default function FitnessPlanGenerator() {
               </span>
             )
           )}
-          {plan && (
+          {plan && !profile?.has_paid && (
+            <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} style={{ padding: "0.4rem 0.9rem", border: "none", borderRadius: "7px", background: "#16A34A", fontSize: "0.82rem", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+              {checkingOut === "unlock" ? "Redirecting..." : "🔓 Unlock this plan — €19"}
+            </button>
+          )}
+          {plan && profile?.has_paid && (
             <>
               <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
                 ↓ Download
@@ -851,6 +933,14 @@ export default function FitnessPlanGenerator() {
                 ← New Plan
               </button>
             </>
+          )}
+          {plan && !profile?.has_paid && (
+            <button onClick={() => {
+              localStorage.removeItem("fitplan_pending_plan");
+              setPlan(null);
+            }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+              ← New Plan
+            </button>
           )}
           <button onClick={handleSignOut} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
             Sign out
@@ -915,10 +1005,16 @@ export default function FitnessPlanGenerator() {
               <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} />
 
               {error && <p style={{ color: "#DC2626", fontSize: "0.85rem", margin: "0 0 1rem" }}>{error}</p>}
-              <button onClick={generate} style={{ width: "100%", padding: "0.8rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", marginTop: "0.5rem" }}
-                onMouseEnter={e => e.target.style.background = "#15803D"} onMouseLeave={e => e.target.style.background = "#16A34A"}>
-                Generate My 8-Week Plan →
-              </button>
+              {atGenerationLimit ? (
+                <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} style={{ width: "100%", padding: "0.8rem", background: "#1D4ED8", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", marginTop: "0.5rem" }}>
+                  {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans — buy another for €7`}
+                </button>
+              ) : (
+                <button onClick={generate} style={{ width: "100%", padding: "0.8rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", marginTop: "0.5rem" }}
+                  onMouseEnter={e => e.target.style.background = "#15803D"} onMouseLeave={e => e.target.style.background = "#16A34A"}>
+                  Generate My 8-Week Plan →
+                </button>
+              )}
             </div>
             <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", marginTop: "1rem" }}>
               <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
