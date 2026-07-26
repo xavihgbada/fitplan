@@ -923,44 +923,44 @@ export default function FitnessPlanGenerator() {
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem", position: "sticky", top: 0, zIndex: 10 }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", flexWrap: "wrap", rowGap: "0.6rem", alignItems: "center", gap: "0.7rem", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
         <div>
           <div style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em" }}>FitPlan AI</div>
           <div style={{ fontSize: "0.68rem", color: "#9CA3AF", fontWeight: 500 }}>Powered by Claude</div>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <div style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
           {profile?.has_paid && savedPlans.length > 0 && (
-            <button onClick={() => setShowSavedPlans(!showSavedPlans)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+            <button onClick={() => setShowSavedPlans(!showSavedPlans)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
               📋 My Plans ({savedPlans.length})
             </button>
           )}
           {profile?.has_paid && plan && planId && (
             canCheckIn ? (
-              <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600 }}>
+              <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
                 ✓ Week {currentWeek} check-in
               </button>
             ) : (
-              <span title="Give the plan a full week before checking in" style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "#F9FAFB", fontSize: "0.82rem", color: "#9CA3AF", fontWeight: 600 }}>
+              <span title="Give the plan a full week before checking in" style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "#F9FAFB", fontSize: "0.82rem", color: "#9CA3AF", fontWeight: 600, whiteSpace: "nowrap" }}>
                 Check-in in {daysUntilCheckIn} day{daysUntilCheckIn === 1 ? "" : "s"}
               </span>
             )
           )}
           {plan && !profile?.has_paid && (
-            <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} style={{ padding: "0.4rem 0.9rem", border: "none", borderRadius: "7px", background: "#16A34A", fontSize: "0.82rem", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+            <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} style={{ padding: "0.4rem 0.9rem", border: "none", borderRadius: "7px", background: "#16A34A", fontSize: "0.82rem", color: "#fff", cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
               {checkingOut === "unlock" ? "Redirecting..." : "🔓 Unlock this plan — €19"}
             </button>
           )}
           {plan && profile?.has_paid && (
             <>
-              <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
+              <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
                 ↓ Download
               </button>
               <button onClick={() => {
                 if (window.confirm("Starting a new plan will replace this one. Routines work best when you stick with them and let check-ins adjust them over time, rather than switching often. Continue anyway?")) {
                   setPlan(null);
                 }
-              }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+              }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
                 ← New Plan
               </button>
             </>
@@ -969,11 +969,11 @@ export default function FitnessPlanGenerator() {
             <button onClick={() => {
               localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
               setPlan(null);
-            }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+            }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
               ← New Plan
             </button>
           )}
-          <button onClick={handleSignOut} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={handleSignOut} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
             Sign out
           </button>
         </div>
