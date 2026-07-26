@@ -299,7 +299,7 @@ const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized wor
   "weekly_checkin": "What to track or assess each week to measure progress"
 }
 
-Be specific. Every exercise must have sets, reps, and rest. Include 4-6 exercises per workout. Never include exercises the person dislikes. Directly address their past failures in the motivation strategy. Adapt everything to their injuries and limitations.
+Be specific. Every exercise must have sets, reps, and rest. Include 4-6 exercises per workout. Never include exercises the person dislikes. Directly address their past failures in the motivation strategy. Adapt everything to their injuries and limitations. Keep every nutrition tip to a single concise sentence, and keep motivation_strategy and weekly_checkin to 1-2 sentences each — none of these fields should ever become a paragraph.
 
 EQUIPMENT RULE — CRITICAL: Only assign exercises that can be performed with the exact equipment listed. If an exercise requires a piece of equipment not on the list, do not include it. For example: if no bench is listed, do not assign bench press or incline dumbbell press. If no leg press machine is listed, do not assign leg press. If only a step platform is listed, use it for step-ups, not as a bench substitute.
 
@@ -336,12 +336,13 @@ const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitnes
       "cooldown": "..."
     }
   ],
-  "nutrition_tips": ["..."],
-  "motivation_strategy": "...",
-  "weekly_checkin": "..."
+  "nutrition_tips": ["One concise sentence per tip"],
+  "motivation_strategy": "1-2 sentences max — do not write a paragraph",
+  "weekly_checkin": "1-2 sentences on what to track — do not write a paragraph"
 }
 
 ADJUSTMENT RULES:
+- BREVITY — CRITICAL: keep motivation_strategy and weekly_checkin to 1-2 sentences each, and every nutrition tip to a single sentence, matching the brevity of the original plan. Do not expand these into paragraphs, even when explaining a change in detail — put detailed reasoning in the plan summary instead if needed.
 - If an exercise was completed and felt manageable, apply progressive overload: increase reps, sets, or note a weight increase — small increments only.
 - If an exercise was skipped repeatedly, either simplify it, swap it for an easier variation, or address why in the motivation_strategy.
 - Read the client's notes carefully and respond to specifics they mentioned (pain, boredom, time constraints, etc).
@@ -512,6 +513,8 @@ export default function FitnessPlanGenerator() {
   const [error, setError] = useState("");
   const [activeWorkout, setActiveWorkout] = useState(0);
   const [selectedExercise, setSelectedExercise] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({ nutrition: false, motivation: false, checkin: false });
+  const toggleSection = (key) => setExpandedSections(p => ({ ...p, [key]: !p[key] }));
 
   // --- Check-in feature state ---
   const [planId, setPlanId] = useState(null);
@@ -1153,26 +1156,35 @@ export default function FitnessPlanGenerator() {
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1rem" }}>
               {plan.nutrition_tips && (
                 <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.1rem" }}>
                   <h3 style={sectionTitle}>Nutrition Tips</h3>
-                  <ul style={{ margin: 0, padding: "0 0 0 1rem" }}>
+                  <ul style={{ margin: 0, padding: "0 0 0 1rem", ...(expandedSections.nutrition ? {} : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
                     {plan.nutrition_tips.map((t, i) => <li key={i} style={{ fontSize: "0.83rem", color: "#374151", lineHeight: 1.6, marginBottom: "0.3rem" }}>{t}</li>)}
                   </ul>
+                  <span onClick={() => toggleSection("nutrition")} style={{ fontSize: "0.75rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", display: "inline-block", marginTop: "0.4rem" }}>
+                    {expandedSections.nutrition ? "Show less" : "Show more"}
+                  </span>
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {plan.motivation_strategy && (
                   <div style={{ background: "#F0FDF4", borderRadius: "12px", border: "1px solid #BBF7D0", padding: "1.1rem" }}>
                     <h3 style={{ ...sectionTitle, color: "#166534" }}>Motivation Strategy</h3>
-                    <p style={{ margin: 0, fontSize: "0.83rem", color: "#15803D", lineHeight: 1.6 }}>{plan.motivation_strategy}</p>
+                    <p style={{ margin: 0, fontSize: "0.83rem", color: "#15803D", lineHeight: 1.6, ...(expandedSections.motivation ? {} : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>{plan.motivation_strategy}</p>
+                    <span onClick={() => toggleSection("motivation")} style={{ fontSize: "0.75rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", display: "inline-block", marginTop: "0.4rem" }}>
+                      {expandedSections.motivation ? "Show less" : "Show more"}
+                    </span>
                   </div>
                 )}
                 {plan.weekly_checkin && (
                   <div style={{ background: "#EFF6FF", borderRadius: "12px", border: "1px solid #BFDBFE", padding: "1.1rem" }}>
                     <h3 style={{ ...sectionTitle, color: "#1E40AF" }}>Weekly Check-in</h3>
-                    <p style={{ margin: 0, fontSize: "0.83rem", color: "#1D4ED8", lineHeight: 1.6 }}>{plan.weekly_checkin}</p>
+                    <p style={{ margin: 0, fontSize: "0.83rem", color: "#1D4ED8", lineHeight: 1.6, ...(expandedSections.checkin ? {} : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>{plan.weekly_checkin}</p>
+                    <span onClick={() => toggleSection("checkin")} style={{ fontSize: "0.75rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", display: "inline-block", marginTop: "0.4rem" }}>
+                      {expandedSections.checkin ? "Show less" : "Show more"}
+                    </span>
                   </div>
                 )}
               </div>
