@@ -483,7 +483,7 @@ const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentCh
 
 export default function FitnessPlanGenerator() {
   const [session, setSession] = useState(null);
-  const [page, setPage] = useState("app"); // "app" | "terms" | "privacy"
+  const [page, setPage] = useState("landing"); // "landing" | "app" | "terms" | "privacy"
   const [authMode, setAuthMode] = useState("login"); // "login" | "signup"
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -881,6 +881,66 @@ export default function FitnessPlanGenerator() {
     );
   }
 
+  if (page === "landing" && !session) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
+        <div style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
+          <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
+        </div>
+
+        <div style={{ maxWidth: 640, margin: "0 auto", padding: "1.5rem 1.5rem 3rem", textAlign: "center" }}>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "1rem 0 0.75rem", lineHeight: 1.25 }}>
+            A fitness plan built around your life — not a generic template
+          </h1>
+          <p style={{ fontSize: "1rem", color: "#6B7280", lineHeight: 1.6, margin: "0 0 2rem" }}>
+            Tell it your goals, equipment, injuries, and schedule. Claude builds a real 8-week plan around them — then adjusts it every week based on what you actually did.
+          </p>
+          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
+            <button onClick={() => { setAuthMode("signup"); setPage("app"); }} style={{ padding: "0.85rem 1.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}>
+              Get Started Free
+            </button>
+            <button onClick={() => { setAuthMode("login"); setPage("app"); }} style={{ padding: "0.85rem 1.75rem", background: "transparent", color: "#111827", border: "1.5px solid #E5E7EB", borderRadius: "9px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}>
+              Log In
+            </button>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
+            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+              <div style={{ fontSize: "1.4rem" }}>🎯</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Actually personalized</div>
+                <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Built around your real equipment, injuries, past failed attempts, and schedule — not a one-size-fits-all template.</div>
+              </div>
+            </div>
+            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+              <div style={{ fontSize: "1.4rem" }}>🔄</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Adjusts every week</div>
+                <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Weekly check-ins tell it what you actually did — and it adapts next week's plan, something a static chat conversation can't do on its own.</div>
+              </div>
+            </div>
+            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+              <div style={{ fontSize: "1.4rem" }}>📄</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Yours to keep</div>
+                <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Download a clean PDF of your plan, or come back anytime to view it and check in.</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonials — add real, permission-confirmed quotes here once testers have said yes */}
+        </div>
+
+        <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", paddingBottom: "2rem" }}>
+          <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
+          {" · "}
+          <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+        </p>
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -917,6 +977,9 @@ export default function FitnessPlanGenerator() {
             <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
             {" "}and{" "}
             <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+          </p>
+          <p style={{ fontSize: "0.8rem", textAlign: "center", margin: "0.75rem 0 0" }}>
+            <span onClick={() => setPage("landing")} style={{ color: "#9CA3AF", cursor: "pointer" }}>← Back to home</span>
           </p>
         </div>
       </div>
