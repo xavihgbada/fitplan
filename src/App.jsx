@@ -344,8 +344,14 @@ const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitnes
 ADJUSTMENT RULES:
 - BREVITY — CRITICAL: keep motivation_strategy and weekly_checkin to 1-2 sentences each, and every nutrition tip to a single sentence, matching the brevity of the original plan. Do not expand these into paragraphs, even when explaining a change in detail — put detailed reasoning in the plan summary instead if needed.
 - If an exercise was completed and felt manageable, apply progressive overload: increase reps, sets, or note a weight increase — small increments only.
-- If an exercise was skipped repeatedly, either simplify it, swap it for an easier variation, or address why in the motivation_strategy.
-- Read the client's notes carefully and respond to specifics they mentioned (pain, boredom, time constraints, etc).
+- SKIP REASONS — CRITICAL: each skipped exercise now comes with its own specific reason. Respond to each one individually and appropriately, not with a generic swap:
+  - Pain or injury mentioned → replace with a genuinely different movement pattern that avoids that stress, not just a lighter version of the same lift.
+  - "Too hard" or similar → reduce load/reps or substitute an easier variation of the same movement pattern.
+  - "Too easy" or similar → this is a candidate to keep at increased volume/load, not skip — flag this distinctly from a real skip if it appears here.
+  - "Boring" or lack of engagement → swap for a different exercise targeting the same muscle group, not the same exercise again.
+  - Time constraints → consider trimming that exercise or shortening its rest period rather than dropping the muscle group entirely.
+  - If a reason is vague or missing ("No reason given"), make a reasonable substitution but don't over-interpret — a small, safe change is better than guessing aggressively.
+- Read the client's general notes for the week and respond to anything not already captured by individual exercise reasons.
 - Keep the same days, equipment constraints, and dislikes as the original plan — do not reintroduce disliked exercises or equipment the client doesn't have.
 - EQUIPMENT RULE — CRITICAL: only assign exercises matching the equipment already established for this client.
 - VOLUME GUIDELINES: Beginner 10-15 sets/muscle/week, Intermediate 12-18, Advanced 16-22. Progressive overload should never push volume outside these ranges in one jump — increase by 1-2 sets max per adjustment.
@@ -384,9 +390,11 @@ ${JSON.stringify(plan)}
 Here is their check-in history:
 ${JSON.stringify(checkinsHistory)}
 
-Their most recent check-in (week ${latest.week_number}) reported:
-Completed/skipped exercises: ${JSON.stringify(latest.completed_exercises)}
-Notes: ${latest.notes || "None"}
+Their most recent check-in (week ${latest.week_number}) reported, per day and exercise:
+${JSON.stringify(latest.completed_exercises)}
+
+Each exercise entry is either {"done": true} — completed as planned — or {"done": false, "reason": "..."} — skipped, with the client's own stated reason. Use these reasons individually per exercise, not as a general summary.
+General notes for the week (may be empty): ${latest.notes || "None"}
 
 Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
 };
@@ -525,6 +533,7 @@ export default function FitnessPlanGenerator() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [checkInState, setCheckInState] = useState({}); // "day::exerciseName" -> true/false
+  const [skipReasons, setSkipReasons] = useState({}); // "day::exerciseName" -> reason string, only used when skipped
   const [checkInNotes, setCheckInNotes] = useState("");
   const [adjusting, setAdjusting] = useState(false);
 
@@ -779,6 +788,11 @@ export default function FitnessPlanGenerator() {
     setCheckInState(p => ({ ...p, [key]: !p[key] }));
   };
 
+  const updateSkipReason = (day, exerciseName, value) => {
+    const key = `${day}::${exerciseName}`;
+    setSkipReasons(p => ({ ...p, [key]: value }));
+  };
+
   const submitCheckIn = async () => {
     if (!planId || !canCheckIn) return;
     setAdjusting(true);
@@ -787,7 +801,11 @@ export default function FitnessPlanGenerator() {
       plan.workouts.forEach(w => {
         completed_exercises[w.day] = {};
         w.exercises.forEach(ex => {
-          completed_exercises[w.day][ex.name] = !!checkInState[`${w.day}::${ex.name}`];
+          const key = `${w.day}::${ex.name}`;
+          const done = !!checkInState[key];
+          completed_exercises[w.day][ex.name] = done
+            ? { done: true }
+            : { done: false, reason: skipReasons[key]?.trim() || "No reason given" };
         });
       });
 
@@ -826,6 +844,7 @@ export default function FitnessPlanGenerator() {
       setCheckins(history);
       setCurrentWeek(currentWeek + 1);
       setCheckInState({});
+      setSkipReasons({});
       setCheckInNotes("");
       setShowCheckIn(false);
       setActiveWorkout(0);
@@ -939,6 +958,39 @@ export default function FitnessPlanGenerator() {
               <div>
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Yours to keep</div>
                 <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Download a clean PDF of your plan, or come back anytime to view it and check in.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: "2.5rem", textAlign: "left" }}>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", textAlign: "center", marginBottom: "0.85rem" }}>
+              Example day from a generated plan
+            </p>
+            <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", overflow: "hidden" }}>
+              <div style={{ background: "#16A34A", padding: "0.7rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: "0.85rem" }}>MONDAY — Push Day</span>
+                <span style={{ color: "#fff", fontSize: "0.75rem" }}>45 min</span>
+              </div>
+              <div style={{ padding: "1rem" }}>
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", padding: "0.6rem 0.75rem", marginBottom: "0.75rem" }}>
+                  <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#92400E", letterSpacing: "0.05em", textTransform: "uppercase" }}>Warm-up</span>
+                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#78350F" }}>5 min band pull-aparts and arm circles</p>
+                </div>
+                {[
+                  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", note: "No bench at home? Swap for standard push-ups elevated on a step." },
+                  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", note: "Light weight, focus on control — this is what actually builds shoulder width." },
+                  { name: "Overhead Cable Extension", sets: "2", reps: "15", note: "Replaces the skull crusher you said caused elbow pain." },
+                ].map((ex, i) => (
+                  <div key={i} style={{ background: "#F9FAFB", borderRadius: "9px", border: "1px solid #F3F4F6", padding: "0.7rem 0.85rem", marginBottom: "0.5rem", display: "flex", justifyContent: "space-between", gap: "0.75rem" }}>
+                    <div>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#111827" }}>{ex.name}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#9CA3AF", marginTop: "0.15rem" }}>{ex.note}</div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#16A34A" }}>{ex.sets}×{ex.reps}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1307,16 +1359,27 @@ export default function FitnessPlanGenerator() {
                   const key = `${w.day}::${ex.name}`;
                   const done = !!checkInState[key];
                   return (
-                    <label key={ei} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0", fontSize: "0.83rem", color: "#374151", cursor: "pointer" }}>
-                      <input type="checkbox" checked={done} onChange={() => toggleExerciseDone(w.day, ex.name)} />
-                      {ex.name}
-                    </label>
+                    <div key={ei} style={{ padding: "0.4rem 0" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.83rem", color: "#374151", cursor: "pointer" }}>
+                        <input type="checkbox" checked={done} onChange={() => toggleExerciseDone(w.day, ex.name)} />
+                        {ex.name}
+                      </label>
+                      {!done && (
+                        <input
+                          type="text"
+                          value={skipReasons[key] || ""}
+                          onChange={e => updateSkipReason(w.day, ex.name, e.target.value)}
+                          placeholder="Why? (pain, too hard, ran out of time, boring...)"
+                          style={{ width: "100%", marginTop: "0.3rem", padding: "0.4rem 0.6rem", fontSize: "0.78rem", borderRadius: "6px", border: "1.5px solid #FCA5A5", background: "#FEF2F2", color: "#111827", outline: "none", boxSizing: "border-box" }}
+                        />
+                      )}
+                    </div>
                   );
                 })}
               </div>
             ))}
 
-            <Field label="Anything to add? (pain, boredom, too easy, ran out of time...)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" />
+            <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week — specific skip reasons are captured above, next to each exercise." />
 
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
               <button onClick={() => setShowCheckIn(false)} style={{ flex: 1, padding: "0.65rem", border: "1.5px solid #E5E7EB", borderRadius: "9px", background: "transparent", color: "#6B7280", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
