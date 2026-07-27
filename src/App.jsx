@@ -788,6 +788,18 @@ export default function FitnessPlanGenerator() {
     setCheckInState(p => ({ ...p, [key]: !p[key] }));
   };
 
+  const openCheckIn = () => {
+    const initial = {};
+    plan.workouts.forEach(w => {
+      w.exercises.forEach(ex => {
+        initial[`${w.day}::${ex.name}`] = true; // default: assume completed, uncheck to report a skip
+      });
+    });
+    setCheckInState(initial);
+    setSkipReasons({});
+    setShowCheckIn(true);
+  };
+
   const updateSkipReason = (day, exerciseName, value) => {
     const key = `${day}::${exerciseName}`;
     setSkipReasons(p => ({ ...p, [key]: value }));
@@ -964,22 +976,32 @@ export default function FitnessPlanGenerator() {
 
           <div style={{ marginTop: "2.5rem", textAlign: "left" }}>
             <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", textAlign: "center", marginBottom: "0.85rem" }}>
-              Example day from a generated plan
+              Example from a real generated plan
             </p>
             <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", overflow: "hidden" }}>
+              <div style={{ borderBottom: "1px solid #E5E7EB", padding: "0.85rem 1rem 0", display: "flex", gap: "0.25rem" }}>
+                {["Monday", "Tuesday", "Thursday", "Saturday"].map((d, i) => (
+                  <span key={d} style={{
+                    padding: "0.4rem 0.75rem", borderRadius: "7px 7px 0 0", fontSize: "0.78rem", fontWeight: 600,
+                    background: i === 0 ? "#16A34A" : "transparent", color: i === 0 ? "#fff" : "#9CA3AF"
+                  }}>{d}</span>
+                ))}
+              </div>
               <div style={{ background: "#16A34A", padding: "0.7rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: "0.85rem" }}>MONDAY — Push Day</span>
-                <span style={{ color: "#fff", fontSize: "0.75rem" }}>45 min</span>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: "0.85rem" }}>MONDAY — Push Day: Chest, Shoulders &amp; Triceps</span>
+                <span style={{ color: "#fff", fontSize: "0.75rem" }}>50 min</span>
               </div>
               <div style={{ padding: "1rem" }}>
                 <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", padding: "0.6rem 0.75rem", marginBottom: "0.75rem" }}>
                   <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#92400E", letterSpacing: "0.05em", textTransform: "uppercase" }}>Warm-up</span>
-                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#78350F" }}>5 min band pull-aparts and arm circles</p>
+                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#78350F" }}>5 min band pull-aparts, arm circles, and light incline push-ups</p>
                 </div>
                 {[
-                  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", note: "No bench at home? Swap for standard push-ups elevated on a step." },
-                  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", note: "Light weight, focus on control — this is what actually builds shoulder width." },
-                  { name: "Overhead Cable Extension", sets: "2", reps: "15", note: "Replaces the skull crusher you said caused elbow pain." },
+                  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
+                  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
+                  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", note: "Light weight, full control — this is what actually builds shoulder width." },
+                  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", note: "Replaces the skull crusher you said caused elbow pain." },
+                  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
                 ].map((ex, i) => (
                   <div key={i} style={{ background: "#F9FAFB", borderRadius: "9px", border: "1px solid #F3F4F6", padding: "0.7rem 0.85rem", marginBottom: "0.5rem", display: "flex", justifyContent: "space-between", gap: "0.75rem" }}>
                     <div>
@@ -988,9 +1010,14 @@ export default function FitnessPlanGenerator() {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#16A34A" }}>{ex.sets}×{ex.reps}</div>
+                      <div style={{ fontSize: "0.7rem", color: "#9CA3AF" }}>{ex.rest} rest</div>
                     </div>
                   </div>
                 ))}
+                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "8px", padding: "0.6rem 0.75rem", marginTop: "0.25rem" }}>
+                  <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase" }}>Cool-down</span>
+                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#15803D" }}>5 min static stretching — chest doorway stretch, cross-body shoulder stretch</p>
+                </div>
               </div>
             </div>
           </div>
@@ -1078,7 +1105,7 @@ export default function FitnessPlanGenerator() {
           )}
           {profile?.has_paid && plan && planId && (
             canCheckIn ? (
-              <button onClick={() => setShowCheckIn(true)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <button onClick={openCheckIn} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
                 ✓ Week {currentWeek} check-in
               </button>
             ) : (
@@ -1350,7 +1377,7 @@ export default function FitnessPlanGenerator() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "1rem" }}>
           <div style={{ background: "#fff", borderRadius: "14px", maxWidth: 560, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: "1.5rem" }}>
             <h3 style={{ fontSize: "1.05rem", fontWeight: 800, margin: "0 0 0.25rem" }}>Week {currentWeek} check-in</h3>
-            <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.25rem" }}>Check off what you actually did this week.</p>
+            <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.25rem" }}>Everything's checked as done by default — uncheck anything you skipped and tell us why.</p>
 
             {plan.workouts.map((w, wi) => (
               <div key={wi} style={{ marginBottom: "1rem" }}>
