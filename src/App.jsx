@@ -414,19 +414,20 @@ const TypeTag = ({ type }) => {
 
 const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid #E5E7EB", fontSize: "0.9rem", color: "#111827", background: "#FAFAFA", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
 
-const Field = ({ label, name, value, onChange, placeholder, as = "input", options, hint }) => (
+const Field = ({ label, name, value, onChange, placeholder, as = "input", options, hint, error }) => (
   <div style={{ marginBottom: "1.1rem" }}>
     <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: "0.25rem" }}>{label}</label>
     {hint && <p style={{ fontSize: "0.78rem", color: "#9CA3AF", margin: "0 0 0.35rem", lineHeight: 1.4 }}>{hint}</p>}
     {as === "select" ? (
-      <select name={name} value={value} onChange={onChange} style={inputStyle} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = "#E5E7EB"}>
+      <select name={name} value={value} onChange={onChange} style={{ ...inputStyle, ...(error ? { borderColor: "#DC2626" } : {}) }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = error ? "#DC2626" : "#E5E7EB"}>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     ) : as === "textarea" ? (
-      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = "#E5E7EB"} />
+      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", ...(error ? { borderColor: "#DC2626" } : {}) }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = error ? "#DC2626" : "#E5E7EB"} />
     ) : (
-      <input name={name} value={value} onChange={onChange} placeholder={placeholder} style={inputStyle} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = "#E5E7EB"} />
+      <input name={name} value={value} onChange={onChange} placeholder={placeholder} style={{ ...inputStyle, ...(error ? { borderColor: "#DC2626" } : {}) }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = error ? "#DC2626" : "#E5E7EB"} />
     )}
+    {error && <p style={{ fontSize: "0.78rem", color: "#DC2626", margin: "0.3rem 0 0" }}>{error}</p>}
   </div>
 );
 
@@ -438,7 +439,7 @@ const Divider = ({ label }) => (
   </div>
 );
 
-const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentChange }) => {
+const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentChange, error }) => {
   const toggle = (id) => {
     onEquipmentChange(selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]);
   };
@@ -452,12 +453,13 @@ const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentCh
           { id: "bodyweight", label: "🤸 Bodyweight only" },
         ].map(opt => (
           <button key={opt.id} onClick={() => onLocationChange(opt.id)} type="button" style={{
-            padding: "0.5rem 1rem", borderRadius: "9px", border: `1.5px solid ${location === opt.id ? "#16A34A" : "#E5E7EB"}`,
+            padding: "0.5rem 1rem", borderRadius: "9px", border: `1.5px solid ${location === opt.id ? "#16A34A" : error ? "#DC2626" : "#E5E7EB"}`,
             background: location === opt.id ? "#F0FDF4" : "#FAFAFA", color: location === opt.id ? "#15803D" : "#6B7280",
             fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", transition: "all 0.12s"
           }}>{opt.label}</button>
         ))}
       </div>
+      {error && <p style={{ fontSize: "0.78rem", color: "#DC2626", margin: "-0.5rem 0 0.6rem" }}>{error}</p>}
       {location === "home_gym" && (
         <>
           <p style={{ fontSize: "0.78rem", color: "#9CA3AF", margin: "0 0 0.6rem", lineHeight: 1.4 }}>Select what you have at home — your plan will only use these.</p>
@@ -696,9 +698,15 @@ export default function FitnessPlanGenerator() {
 
   const handleSignOut = async () => { await supabase.auth.signOut(); setPlan(null); };
 
-  const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+  const handleChange = e => {
+    setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+    if (fieldErrors[e.target.name]) setFieldErrors(p => ({ ...p, [e.target.name]: undefined }));
+  };
   const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
-  const handleEquipmentLocation = (loc) => setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
+  const handleEquipmentLocation = (loc) => {
+    setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
+    if (fieldErrors.equipmentLocation) setFieldErrors(p => ({ ...p, equipmentLocation: undefined }));
+  };
 
   const openYoutube = (exerciseName) => {
     const query = encodeURIComponent(`how to do ${exerciseName} exercise`);
@@ -708,9 +716,15 @@ export default function FitnessPlanGenerator() {
   const totalAllowedGenerations = 3 + (profile?.generation_credits || 0);
   const atGenerationLimit = profile?.has_paid && (profile?.plans_generated || 0) >= totalAllowedGenerations;
 
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const generate = async () => {
-    if (!form.goal.trim() || !form.excuse.trim()) { setError("Please fill in your goal and main challenge."); return; }
-    if (!form.equipmentLocation) { setError("Please select where you train."); return; }
+    const errs = {};
+    if (!form.goal.trim()) errs.goal = "Tell us your main fitness goal.";
+    if (!form.excuse.trim()) errs.excuse = "This helps the plan work around your real challenge.";
+    if (!form.equipmentLocation) errs.equipmentLocation = "Select where you train.";
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) { setError(""); return; }
     if (atGenerationLimit) { setError("You've used your included generations."); return; }
     setError(""); setLoading(true); setPlan(null);
     try {
@@ -986,6 +1000,15 @@ export default function FitnessPlanGenerator() {
     );
   }
 
+  if (session && profile === null) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB" }}>
+        <div style={{ width: 32, height: 32, border: "3px solid #E5E7EB", borderTopColor: "#16A34A", borderRadius: "50%", animation: "spin 0.75s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
 
@@ -996,7 +1019,7 @@ export default function FitnessPlanGenerator() {
           <div style={{ fontSize: "0.68rem", color: "#9CA3AF", fontWeight: 500 }}>Your Personalized Fitness AI</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
-          {profile?.has_paid && savedPlans.length > 0 && (
+          {profile?.has_paid && (
             <button onClick={() => setShowSavedPlans(!showSavedPlans)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
               📋 My Plans ({savedPlans.length})
             </button>
@@ -1049,6 +1072,12 @@ export default function FitnessPlanGenerator() {
         <div style={{ maxWidth: 720, margin: "1rem auto", padding: "0 1.25rem" }}>
           <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.25rem" }}>
             <h3 style={{ fontSize: "0.9rem", fontWeight: 800, margin: "0 0 1rem", letterSpacing: "-0.01em" }}>My Saved Plans</h3>
+            {savedPlans.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "1.5rem 0.5rem" }}>
+                <div style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>📋</div>
+                <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: 0, lineHeight: 1.5 }}>No saved plans yet. Generate a plan and unlock it to see it here.</p>
+              </div>
+            ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {savedPlans.map(p => (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.85rem", background: "#F9FAFB", borderRadius: "8px", border: "1px solid #F3F4F6" }}>
@@ -1063,6 +1092,7 @@ export default function FitnessPlanGenerator() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
       )}
@@ -1076,7 +1106,7 @@ export default function FitnessPlanGenerator() {
             </div>
             <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #E5E7EB", padding: "1.6rem" }}>
               <Divider label="Your Goal" />
-              <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" />
+              <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" error={fieldErrors.goal} />
               <Field label="Specific target" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better — give us a number if you can." />
 
               <Divider label="Your Schedule" />
@@ -1090,7 +1120,7 @@ export default function FitnessPlanGenerator() {
               <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
 
               <Divider label="Your Challenges" />
-              <Field label="What's your biggest excuse or challenge?" name="excuse" value={form.excuse} onChange={handleChange} placeholder="e.g. I get home tired at 6pm and plain lifting bores me" as="textarea" />
+              <Field label="What's your biggest excuse or challenge?" name="excuse" value={form.excuse} onChange={handleChange} placeholder="e.g. I get home tired at 6pm and plain lifting bores me" as="textarea" error={fieldErrors.excuse} />
               <Field label="Have you tried a fitness plan before? What went wrong?" name="pastAttempts" value={form.pastAttempts} onChange={handleChange} placeholder="e.g. I quit after 2 weeks because it felt too repetitive" as="textarea" hint="This helps build a plan that avoids your past pitfalls." />
 
               <Divider label="Your Preferences" />
@@ -1099,7 +1129,7 @@ export default function FitnessPlanGenerator() {
               <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues — or 'none'" />
 
               <Divider label="Your Equipment" />
-              <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} />
+              <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} error={fieldErrors.equipmentLocation} />
 
               {error && <p style={{ color: "#DC2626", fontSize: "0.85rem", margin: "0 0 1rem" }}>{error}</p>}
               {atGenerationLimit ? (
