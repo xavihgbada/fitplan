@@ -414,7 +414,7 @@ const TAG_COLORS = {
 const TypeTag = ({ type }) => {
   const style = TAG_COLORS[type] || { bg: "#F3F4F6", color: "#374151" };
   return (
-    <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "20px", background: style.bg, color: style.color, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+    <span className="type-tag" style={{ background: style.bg, color: style.color }}>
       {type}
     </span>
   );
@@ -895,28 +895,28 @@ export default function FitnessPlanGenerator() {
 
   if (passwordRecovery) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif" }}>
-        <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #E5E7EB", padding: "2rem", width: "100%", maxWidth: 380 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "1.5rem" }}>
-            <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
-            <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <div className="app-mark">💪</div>
+            <div className="app-wordmark">FitPlan AI</div>
           </div>
           {resetSuccess ? (
             <>
-              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.5rem", color: "#111827" }}>Password updated</h2>
-              <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.25rem" }}>You can continue to your account now.</p>
-              <button onClick={() => { setPasswordRecovery(false); setResetSuccess(false); }} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}>
+              <h2 className="auth-title">Password updated</h2>
+              <p className="auth-sub">You can continue to your account now.</p>
+              <button onClick={() => { setPasswordRecovery(false); setResetSuccess(false); }} className="btn btn-solid btn-block">
                 Continue to FitPlan AI
               </button>
             </>
           ) : (
             <>
-              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.25rem", color: "#111827" }}>Set a new password</h2>
-              <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.5rem" }}>Choose a new password for your account.</p>
+              <h2 className="auth-title">Set a new password</h2>
+              <p className="auth-sub">Choose a new password for your account.</p>
               <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...inputStyle, marginBottom: "0.75rem", display: "block" }} />
               <input type="password" placeholder="Confirm new password" value={newPasswordConfirm} onChange={e => setNewPasswordConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSetNewPassword()} style={{ ...inputStyle, marginBottom: "1rem", display: "block" }} />
-              {resetError && <p style={{ color: "#DC2626", fontSize: "0.82rem", margin: "0 0 0.75rem" }}>{resetError}</p>}
-              <button onClick={handleSetNewPassword} disabled={resetLoading} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}>
+              {resetError && <p className="auth-error">{resetError}</p>}
+              <button onClick={handleSetNewPassword} disabled={resetLoading} className="btn btn-solid btn-block">
                 {resetLoading ? "..." : "Set new password"}
               </button>
             </>
@@ -928,73 +928,76 @@ export default function FitnessPlanGenerator() {
 
   if (page === "landing" && !session) {
     return (
-      <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
-        <div style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
-          <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
+      <div className="landing">
+        <div className="landing-brand">
+          <div className="app-mark">💪</div>
+          <div className="app-wordmark">FitPlan AI</div>
         </div>
 
-        <div style={{ maxWidth: 640, margin: "0 auto", padding: "1.5rem 1.5rem 3rem", textAlign: "center" }}>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "1rem 0 0.75rem", lineHeight: 1.25 }}>
+        <div className="landing-main">
+          <h1 className="landing-title">
             A fitness plan built around your life — not a generic template
           </h1>
-          <p style={{ fontSize: "1rem", color: "#6B7280", lineHeight: 1.6, margin: "0 0 2rem" }}>
+          <p className="landing-sub">
             Tell it your goals, equipment, injuries, and schedule. FitPlan AI's engine, purpose-built for fitness, generates a real 8-week plan around them — then adjusts it every week based on what you actually did.
           </p>
-          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
-            <button onClick={() => { setAuthMode("signup"); setPage("app"); }} style={{ padding: "0.85rem 1.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}>
+          <div className="landing-cta">
+            <button className="btn btn-solid" onClick={() => { setAuthMode("signup"); setPage("app"); }}>
               Get Started Free
             </button>
-            <button onClick={() => { setAuthMode("login"); setPage("app"); }} style={{ padding: "0.85rem 1.75rem", background: "transparent", color: "#111827", border: "1.5px solid #E5E7EB", borderRadius: "9px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}>
+            <button className="btn btn-ghost" onClick={() => { setAuthMode("login"); setPage("app"); }}>
               Log In
             </button>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
-            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start" }}>
-              <div style={{ fontSize: "1.4rem" }}>🎯</div>
+          <div className="landing-features">
+            <div className="landing-feature">
+              <div className="landing-feature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3.5" /></svg>
+              </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Actually personalized</div>
-                <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Built around your real equipment, injuries, past failed attempts, and schedule — not a one-size-fits-all template.</div>
+                <div className="landing-feature-title">Actually personalized</div>
+                <div className="landing-feature-body">Built around your real equipment, injuries, past failed attempts, and schedule — not a one-size-fits-all template.</div>
               </div>
             </div>
-            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start" }}>
-              <div style={{ fontSize: "1.4rem" }}>🔄</div>
+            <div className="landing-feature">
+              <div className="landing-feature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.6M4 13a8 8 0 0 0 14.6 4.6" /><path d="M4 4v4h4M20 20v-4h-4" /></svg>
+              </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Adjusts every week</div>
-                <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Weekly check-ins tell it what you actually did — and it adapts next week's plan, something a static chat conversation can't do on its own.</div>
+                <div className="landing-feature-title">Adjusts every week</div>
+                <div className="landing-feature-body">Weekly check-ins tell it what you actually did — and it adapts next week's plan, something a static chat conversation can't do on its own.</div>
               </div>
             </div>
-            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start" }}>
-              <div style={{ fontSize: "1.4rem" }}>📄</div>
+            <div className="landing-feature">
+              <div className="landing-feature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a1.5 1.5 0 0 0-1.5 1.5v15A1.5 1.5 0 0 0 7 21h10a1.5 1.5 0 0 0 1.5-1.5V8.5L14 3Z" /><path d="M13.5 3v5.5H19" /></svg>
+              </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.2rem" }}>Yours to keep</div>
-                <div style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5 }}>Download a clean PDF of your plan, or come back anytime to view it and check in.</div>
+                <div className="landing-feature-title">Yours to keep</div>
+                <div className="landing-feature-body">Download a clean PDF of your plan, or come back anytime to view it and check in.</div>
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: "2.5rem", textAlign: "left" }}>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", textAlign: "center", marginBottom: "0.85rem" }}>
+          <div style={{ marginTop: "3rem", textAlign: "left" }}>
+            <p className="landing-eyebrow">
               Example from a real generated plan
             </p>
-            <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", overflow: "hidden" }}>
-              <div style={{ borderBottom: "1px solid #E5E7EB", padding: "0.85rem 1rem 0", display: "flex", gap: "0.25rem" }}>
+            <div className="landing-preview">
+              <div className="landing-preview-tabs">
                 {["Monday", "Tuesday", "Thursday", "Saturday"].map((d, i) => (
-                  <span key={d} style={{
-                    padding: "0.4rem 0.75rem", borderRadius: "7px 7px 0 0", fontSize: "0.78rem", fontWeight: 600,
-                    background: i === 0 ? "#16A34A" : "transparent", color: i === 0 ? "#fff" : "#9CA3AF"
-                  }}>{d}</span>
+                  <span key={d} className={`landing-preview-tab${i === 0 ? " is-active" : ""}`}>{d}</span>
                 ))}
               </div>
-              <div style={{ background: "#16A34A", padding: "0.7rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: "0.85rem" }}>MONDAY — Push Day: Chest, Shoulders &amp; Triceps</span>
-                <span style={{ color: "#fff", fontSize: "0.75rem" }}>50 min</span>
+              <div className="landing-preview-head">
+                <span style={{ fontWeight: 800, fontSize: "0.85rem" }}>MONDAY — Push Day: Chest, Shoulders &amp; Triceps</span>
+                <span style={{ fontSize: "0.75rem" }}>50 min</span>
               </div>
-              <div style={{ padding: "1rem" }}>
-                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", padding: "0.6rem 0.75rem", marginBottom: "0.75rem" }}>
-                  <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#92400E", letterSpacing: "0.05em", textTransform: "uppercase" }}>Warm-up</span>
-                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#78350F" }}>5 min band pull-aparts, arm circles, and light incline push-ups</p>
+              <div className="landing-preview-body">
+                <div className="info-box info-box-warm" style={{ marginBottom: "0.75rem" }}>
+                  <span className="info-box-label">Warm-up</span>
+                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min band pull-aparts, arm circles, and light incline push-ups</p>
                 </div>
                 {[
                   { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
@@ -1003,20 +1006,22 @@ export default function FitnessPlanGenerator() {
                   { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", note: "Replaces the skull crusher you said caused elbow pain." },
                   { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
                 ].map((ex, i) => (
-                  <div key={i} style={{ background: "#F9FAFB", borderRadius: "9px", border: "1px solid #F3F4F6", padding: "0.7rem 0.85rem", marginBottom: "0.5rem", display: "flex", justifyContent: "space-between", gap: "0.75rem" }}>
-                    <div>
-                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#111827" }}>{ex.name}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#9CA3AF", marginTop: "0.15rem" }}>{ex.note}</div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#16A34A" }}>{ex.sets}×{ex.reps}</div>
-                      <div style={{ fontSize: "0.7rem", color: "#9CA3AF" }}>{ex.rest} rest</div>
+                  <div key={i} className="exercise-card" style={{ marginBottom: "0.5rem" }}>
+                    <div className="exercise-row" style={{ gridTemplateColumns: "1fr auto", padding: "0.7rem 0.85rem" }}>
+                      <div>
+                        <div className="exercise-name" style={{ fontSize: "0.85rem" }}>{ex.name}</div>
+                        <div className="exercise-note">{ex.note}</div>
+                      </div>
+                      <div className="exercise-stats">
+                        <div className="exercise-sets" style={{ fontSize: "0.8rem" }}>{ex.sets}×{ex.reps}</div>
+                        <div className="exercise-rest">{ex.rest} rest</div>
+                      </div>
                     </div>
                   </div>
                 ))}
-                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "8px", padding: "0.6rem 0.75rem", marginTop: "0.25rem" }}>
-                  <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase" }}>Cool-down</span>
-                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#15803D" }}>5 min static stretching — chest doorway stretch, cross-body shoulder stretch</p>
+                <div className="info-box info-box-cool" style={{ marginTop: "0.25rem" }}>
+                  <span className="info-box-label">Cool-down</span>
+                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min static stretching — chest doorway stretch, cross-body shoulder stretch</p>
                 </div>
               </div>
             </div>
@@ -1025,10 +1030,10 @@ export default function FitnessPlanGenerator() {
           {/* Testimonials — add real, permission-confirmed quotes here once testers have said yes */}
         </div>
 
-        <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", paddingBottom: "2rem" }}>
-          <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
+        <p className="landing-footer-links">
+          <span onClick={() => setPage("terms")}>Terms of Service</span>
           {" · "}
-          <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+          <span onClick={() => setPage("privacy")}>Privacy Policy</span>
         </p>
       </div>
     );
@@ -1036,43 +1041,43 @@ export default function FitnessPlanGenerator() {
 
   if (!session) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif" }}>
-        <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #E5E7EB", padding: "2rem", width: "100%", maxWidth: 380 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "1.5rem" }}>
-            <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
-            <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <div className="app-mark">💪</div>
+            <div className="app-wordmark">FitPlan AI</div>
           </div>
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: "0 0 0.25rem", letterSpacing: "-0.02em", color: "#111827" }}>{authMode === "login" ? "Welcome back" : "Create account"}</h2>
-          <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.5rem" }}>{authMode === "login" ? "Sign in to access your plans" : "Start your fitness journey"}</p>
+          <h2 className="auth-title">{authMode === "login" ? "Welcome back" : "Create account"}</h2>
+          <p className="auth-sub">{authMode === "login" ? "Sign in to access your plans" : "Start your fitness journey"}</p>
           <input type="email" placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} style={{ ...inputStyle, marginBottom: "0.75rem", display: "block" }} />
           <input type="password" placeholder="Password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} style={{ ...inputStyle, marginBottom: "1rem", display: "block" }} />
-          {authError && <p style={{ color: "#DC2626", fontSize: "0.82rem", margin: "0 0 0.75rem" }}>{authError}</p>}
-          <button onClick={handleAuth} disabled={authLoading} style={{ width: "100%", padding: "0.75rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", marginBottom: "1rem" }}>
+          {authError && <p className="auth-error">{authError}</p>}
+          <button onClick={handleAuth} disabled={authLoading} className="btn btn-solid btn-block">
             {authLoading ? "..." : authMode === "login" ? "Sign In" : "Sign Up"}
           </button>
           {authMode === "login" && (
             forgotSent ? (
-              <p style={{ fontSize: "0.8rem", color: "#16A34A", textAlign: "center", margin: "0 0 1rem" }}>Check your email for a reset link.</p>
+              <p className="auth-success">Check your email for a reset link.</p>
             ) : (
-              <p style={{ fontSize: "0.8rem", textAlign: "center", margin: "0 0 1rem" }}>
-                <span onClick={handleForgotPassword} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Forgot password?</span>
+              <p className="auth-links">
+                <span onClick={handleForgotPassword}>Forgot password?</span>
               </p>
             )
           )}
-          <p style={{ fontSize: "0.82rem", color: "#6B7280", textAlign: "center", margin: 0 }}>
+          <p className="auth-footnote">
             {authMode === "login" ? "Don't have an account? " : "Already have an account? "}
-            <span onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }} style={{ color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>
+            <span onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}>
               {authMode === "login" ? "Sign up" : "Sign in"}
             </span>
           </p>
-          <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", margin: "1rem 0 0" }}>
+          <p className="auth-legal">
             By signing up you agree to our{" "}
-            <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
+            <span onClick={() => setPage("terms")}>Terms of Service</span>
             {" "}and{" "}
-            <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+            <span onClick={() => setPage("privacy")}>Privacy Policy</span>
           </p>
-          <p style={{ fontSize: "0.8rem", textAlign: "center", margin: "0.75rem 0 0" }}>
-            <span onClick={() => setPage("landing")} style={{ color: "#9CA3AF", cursor: "pointer" }}>← Back to home</span>
+          <p className="auth-back">
+            <span onClick={() => setPage("landing")}>← Back to home</span>
           </p>
         </div>
       </div>
@@ -1081,54 +1086,53 @@ export default function FitnessPlanGenerator() {
 
   if (session && profile === null) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F9FAFB" }}>
-        <div style={{ width: 32, height: 32, border: "3px solid #E5E7EB", borderTopColor: "#16A34A", borderRadius: "50%", animation: "spin 0.75s linear infinite" }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="auth-shell">
+        <div className="auth-spinner" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "'Inter', system-ui, sans-serif", color: "#111827" }}>
+    <div className="app-shell">
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", flexWrap: "wrap", rowGap: "0.6rem", alignItems: "center", gap: "0.7rem", position: "sticky", top: 0, zIndex: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
+      <div className="app-header">
+        <div className="app-mark">💪</div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em" }}>FitPlan AI</div>
-          <div style={{ fontSize: "0.68rem", color: "#9CA3AF", fontWeight: 500 }}>Your Personalized Fitness AI</div>
+          <div className="app-wordmark">FitPlan AI</div>
+          <div className="app-tagline">Your Personalized Fitness AI</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
           {profile?.has_paid && (
-            <button onClick={() => setShowSavedPlans(!showSavedPlans)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+            <button onClick={() => setShowSavedPlans(!showSavedPlans)} className="btn btn-ghost">
               📋 My Plans ({savedPlans.length})
             </button>
           )}
           {profile?.has_paid && plan && planId && (
             canCheckIn ? (
-              <button onClick={openCheckIn} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #1D4ED8", borderRadius: "7px", background: "#EFF6FF", fontSize: "0.82rem", color: "#1D4ED8", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <button onClick={openCheckIn} className="btn btn-cool">
                 ✓ Week {currentWeek} check-in
               </button>
             ) : (
-              <span title="Give the plan a full week before checking in" style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "#F9FAFB", fontSize: "0.82rem", color: "#9CA3AF", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <span title="Give the plan a full week before checking in" style={{ padding: "0.4rem 0.9rem", border: "1.5px solid var(--line)", borderRadius: "7px", background: "var(--paper)", fontSize: "0.82rem", color: "var(--faint)", fontWeight: 600, whiteSpace: "nowrap" }}>
                 Check-in in {daysUntilCheckIn} day{daysUntilCheckIn === 1 ? "" : "s"}
               </span>
             )
           )}
           {plan && !profile?.has_paid && (
-            <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} style={{ padding: "0.4rem 0.9rem", border: "none", borderRadius: "7px", background: "#16A34A", fontSize: "0.82rem", color: "#fff", cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+            <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
               {checkingOut === "unlock" ? "Redirecting..." : "🔓 Unlock this plan — €19"}
             </button>
           )}
           {plan && profile?.has_paid && (
             <>
-              <button onClick={() => exportToPDF(plan)} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #16A34A", borderRadius: "7px", background: "#F0FDF4", fontSize: "0.82rem", color: "#16A34A", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <button onClick={() => exportToPDF(plan)} className="btn btn-tint">
                 ↓ Download
               </button>
               <button onClick={() => {
                 if (window.confirm("Starting a new plan will replace this one. Routines work best when you stick with them and let check-ins adjust them over time, rather than switching often. Continue anyway?")) {
                   setPlan(null);
                 }
-              }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+              }} className="btn btn-ghost">
                 ← New Plan
               </button>
             </>
@@ -1137,11 +1141,11 @@ export default function FitnessPlanGenerator() {
             <button onClick={() => {
               localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
               setPlan(null);
-            }} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+            }} className="btn btn-ghost">
               ← New Plan
             </button>
           )}
-          <button onClick={handleSignOut} style={{ padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+          <button onClick={handleSignOut} className="btn btn-ghost">
             Sign out
           </button>
         </div>
@@ -1241,24 +1245,24 @@ export default function FitnessPlanGenerator() {
         {plan && (
           <div>
             <div style={{ marginBottom: "1.5rem" }}>
-              <h2 style={{ fontSize: "1.4rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem", color: "#111827" }}>{plan.title}</h2>
-              <p style={{ color: "#6B7280", fontSize: "0.9rem", lineHeight: 1.65, margin: "0 0 1rem" }}>{plan.summary}</p>
+              <h2 className="results-title">{plan.title}</h2>
+              <p className="results-summary">{plan.summary}</p>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-                <span style={{ ...pillStyle, background: "#F0FDF4", color: "#15803D" }}>📅 {plan.schedule?.join(", ")}</span>
-                <span style={{ ...pillStyle, background: "#EFF6FF", color: "#1D4ED8" }}>⏱ {plan.weeks} weeks</span>
+                <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)" }}>📅 {plan.schedule?.join(", ")}</span>
+                <span className="pill" style={{ background: "var(--cool-bg)", color: "var(--cool-text)" }}>⏱ {plan.weeks} weeks</span>
               </div>
             </div>
 
             {plan.weeks_breakdown && (
-              <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.25rem", marginBottom: "1.25rem" }}>
-                <h3 style={sectionTitle}>Program Phases</h3>
+              <div className="section-card" style={{ padding: "1.25rem" }}>
+                <h3 className="section-title">Program Phases</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                   {plan.weeks_breakdown.map((p, i) => (
-                    <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
-                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#F0FDF4", color: "#16A34A", fontSize: "0.72rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
+                    <div key={i} className="phase-row">
+                      <div className="phase-index">{i + 1}</div>
                       <div>
-                        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#111827" }}>{p.phase}</div>
-                        <div style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5 }}>{p.focus}</div>
+                        <div className="phase-title">{p.phase}</div>
+                        <div className="phase-focus">{p.focus}</div>
                       </div>
                     </div>
                   ))}
@@ -1267,59 +1271,55 @@ export default function FitnessPlanGenerator() {
             )}
 
             {plan.workouts && (
-              <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", marginBottom: "1.25rem", overflow: "hidden" }}>
-                <div style={{ borderBottom: "1px solid #E5E7EB", padding: "1rem 1.25rem 0", display: "flex", gap: "0.25rem", overflowX: "auto" }}>
+              <div className="section-card">
+                <div className="tab-row">
                   {plan.workouts.map((w, i) => (
-                    <button key={i} onClick={() => setActiveWorkout(i)} style={{
-                      padding: "0.45rem 0.85rem", borderRadius: "7px 7px 0 0", border: "none", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.12s",
-                      background: activeWorkout === i ? "#16A34A" : "transparent",
-                      color: activeWorkout === i ? "#fff" : "#6B7280",
-                    }}>{w.day}</button>
+                    <button key={i} onClick={() => setActiveWorkout(i)} className={`tab-btn${activeWorkout === i ? " is-active" : ""}`}>{w.day}</button>
                   ))}
                 </div>
                 {plan.workouts[activeWorkout] && (() => {
                   const w = plan.workouts[activeWorkout];
                   return (
-                    <div style={{ padding: "1.25rem" }}>
+                    <div className="workout-panel" key={activeWorkout}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
                         <div>
-                          <h3 style={{ fontSize: "1rem", fontWeight: 800, margin: "0 0 0.25rem", letterSpacing: "-0.02em" }}>{w.name}</h3>
+                          <h3 className="workout-name">{w.name}</h3>
                           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                             <TypeTag type={w.type} />
-                            <span style={{ fontSize: "0.78rem", color: "#9CA3AF" }}>⏱ {w.duration}</span>
+                            <span style={{ fontSize: "0.78rem", color: "var(--faint)" }}>⏱ {w.duration}</span>
                           </div>
                         </div>
                       </div>
                       {w.warmup && (
-                        <div style={{ ...infoBox, background: "#FFFBEB", borderColor: "#FDE68A" }}>
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#92400E", letterSpacing: "0.06em", textTransform: "uppercase" }}>Warm-up</span>
-                          <p style={{ margin: "0.2rem 0 0", fontSize: "0.85rem", color: "#78350F", lineHeight: 1.5 }}>{w.warmup}</p>
+                        <div className="info-box info-box-warm">
+                          <span className="info-box-label">Warm-up</span>
+                          <p style={{ margin: "0.2rem 0 0", fontSize: "0.85rem", lineHeight: 1.5 }}>{w.warmup}</p>
                         </div>
                       )}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", margin: "0.75rem 0" }}>
+                      <div className="exercise-list">
                         {w.exercises?.map((ex, i) => (
-                          <div key={i} style={{ background: "#F9FAFB", borderRadius: "9px", border: `1px solid ${selectedExercise === ex.name ? "#16A34A" : "#F3F4F6"}`, overflow: "hidden", transition: "border-color 0.15s" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "1.5rem 1fr auto", gap: "0.6rem", alignItems: "start", padding: "0.7rem 0.85rem" }}>
-                              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#E5E7EB", color: "#374151", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</div>
+                          <div key={i} className={`exercise-card${selectedExercise === ex.name ? " is-selected" : ""}`}>
+                            <div className="exercise-row">
+                              <div className="exercise-index">{i + 1}</div>
                               <div>
-                                <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#111827", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                                <div className="exercise-name">
                                   {ex.name}
-                                  <span onClick={() => openYoutube(ex.name)} style={{ fontSize: "0.68rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>▶ how to</span>
+                                  <span onClick={() => openYoutube(ex.name)} className="exercise-how-to">▶ how to</span>
                                 </div>
-                                {ex.note && <div style={{ fontSize: "0.77rem", color: "#9CA3AF", marginTop: "0.15rem", lineHeight: 1.4 }}>{ex.note}</div>}
+                                {ex.note && <div className="exercise-note">{ex.note}</div>}
                               </div>
-                              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#16A34A" }}>{ex.sets}×{ex.reps}</div>
-                                <div style={{ fontSize: "0.72rem", color: "#9CA3AF" }}>{ex.rest} rest</div>
+                              <div className="exercise-stats">
+                                <div className="exercise-sets">{ex.sets}×{ex.reps}</div>
+                                <div className="exercise-rest">{ex.rest} rest</div>
                               </div>
                             </div>
                           </div>
                         ))}
                       </div>
                       {w.cooldown && (
-                        <div style={{ ...infoBox, background: "#F0FDF4", borderColor: "#BBF7D0" }}>
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#166534", letterSpacing: "0.06em", textTransform: "uppercase" }}>Cool-down</span>
-                          <p style={{ margin: "0.2rem 0 0", fontSize: "0.85rem", color: "#15803D", lineHeight: 1.5 }}>{w.cooldown}</p>
+                        <div className="info-box info-box-cool">
+                          <span className="info-box-label">Cool-down</span>
+                          <p style={{ margin: "0.2rem 0 0", fontSize: "0.85rem", lineHeight: 1.5 }}>{w.cooldown}</p>
                         </div>
                       )}
                     </div>
@@ -1330,44 +1330,50 @@ export default function FitnessPlanGenerator() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1rem" }}>
               {plan.nutrition_tips && (
-                <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.1rem" }}>
-                  <h3 style={sectionTitle}>Nutrition Tips</h3>
-                  <ul style={{ margin: 0, padding: "0 0 0 1rem", ...(expandedSections.nutrition ? {} : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
-                    {plan.nutrition_tips.map((t, i) => <li key={i} style={{ fontSize: "0.83rem", color: "#374151", lineHeight: 1.6, marginBottom: "0.3rem" }}>{t}</li>)}
-                  </ul>
-                  <span onClick={() => toggleSection("nutrition")} style={{ fontSize: "0.75rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", display: "inline-block", marginTop: "0.4rem" }}>
+                <div className="expand-block">
+                  <h3 className="section-title">Nutrition Tips</h3>
+                  <div className={`expand-body${expandedSections.nutrition ? " is-expanded" : ""}`}>
+                    <ul style={{ padding: "0 0 0 1rem" }}>
+                      {plan.nutrition_tips.map((t, i) => <li key={i}>{t}</li>)}
+                    </ul>
+                  </div>
+                  <span onClick={() => toggleSection("nutrition")} className="expand-toggle">
                     {expandedSections.nutrition ? "Show less" : "Show more"}
                   </span>
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {plan.motivation_strategy && (
-                  <div style={{ background: "#F0FDF4", borderRadius: "12px", border: "1px solid #BBF7D0", padding: "1.1rem" }}>
-                    <h3 style={{ ...sectionTitle, color: "#166534" }}>Motivation Strategy</h3>
-                    <p style={{ margin: 0, fontSize: "0.83rem", color: "#15803D", lineHeight: 1.6, ...(expandedSections.motivation ? {} : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>{plan.motivation_strategy}</p>
-                    <span onClick={() => toggleSection("motivation")} style={{ fontSize: "0.75rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", display: "inline-block", marginTop: "0.4rem" }}>
+                  <div className="expand-block tint-mint">
+                    <h3 className="section-title" style={{ color: "var(--accent-deep)" }}>Motivation Strategy</h3>
+                    <div className={`expand-body${expandedSections.motivation ? " is-expanded" : ""}`} style={{ color: "var(--accent-deep)" }}>
+                      <p>{plan.motivation_strategy}</p>
+                    </div>
+                    <span onClick={() => toggleSection("motivation")} className="expand-toggle">
                       {expandedSections.motivation ? "Show less" : "Show more"}
                     </span>
                   </div>
                 )}
                 {plan.weekly_checkin && (
-                  <div style={{ background: "#EFF6FF", borderRadius: "12px", border: "1px solid #BFDBFE", padding: "1.1rem" }}>
-                    <h3 style={{ ...sectionTitle, color: "#1E40AF" }}>Weekly Check-in</h3>
-                    <p style={{ margin: 0, fontSize: "0.83rem", color: "#1D4ED8", lineHeight: 1.6, ...(expandedSections.checkin ? {} : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>{plan.weekly_checkin}</p>
-                    <span onClick={() => toggleSection("checkin")} style={{ fontSize: "0.75rem", color: "#16A34A", fontWeight: 600, cursor: "pointer", display: "inline-block", marginTop: "0.4rem" }}>
+                  <div className="expand-block tint-sky">
+                    <h3 className="section-title" style={{ color: "var(--cool-text)" }}>Weekly Check-in</h3>
+                    <div className={`expand-body${expandedSections.checkin ? " is-expanded" : ""}`} style={{ color: "var(--cool-text)" }}>
+                      <p>{plan.weekly_checkin}</p>
+                    </div>
+                    <span onClick={() => toggleSection("checkin")} className="expand-toggle">
                       {expandedSections.checkin ? "Show less" : "Show more"}
                     </span>
                   </div>
                 )}
               </div>
             </div>
-            <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", lineHeight: 1.6 }}>
+            <p className="results-footnote">
               Generated by FitPlan AI · Adjust intensity to your level · Consult a doctor before starting a new fitness program
             </p>
-            <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", marginTop: "0.5rem" }}>
-              <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
+            <p className="results-footnote" style={{ marginTop: "0.5rem" }}>
+              <span onClick={() => setPage("terms")} style={{ color: "var(--accent-deep)", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
               {" · "}
-              <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+              <span onClick={() => setPage("privacy")} style={{ color: "var(--accent-deep)", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
             </p>
           </div>
         )}
@@ -1420,7 +1426,3 @@ export default function FitnessPlanGenerator() {
     </div>
   );
 }
-
-const pillStyle = { fontSize: "0.78rem", fontWeight: 600, padding: "0.25rem 0.65rem", borderRadius: "20px" };
-const sectionTitle = { fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", margin: "0 0 0.65rem" };
-const infoBox = { padding: "0.7rem 0.85rem", borderRadius: "8px", border: "1px solid" };
