@@ -423,27 +423,27 @@ const TypeTag = ({ type }) => {
 const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid #E5E7EB", fontSize: "0.9rem", color: "#111827", background: "#FAFAFA", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
 
 const Field = ({ label, name, value, onChange, placeholder, as = "input", options, hint, error }) => (
-  <div style={{ marginBottom: "1.1rem" }}>
-    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: "0.25rem" }}>{label}</label>
-    {hint && <p style={{ fontSize: "0.78rem", color: "#9CA3AF", margin: "0 0 0.35rem", lineHeight: 1.4 }}>{hint}</p>}
+  <div className="field">
+    <label className="field-label">{label}</label>
+    {hint && <p className="field-hint">{hint}</p>}
     {as === "select" ? (
-      <select name={name} value={value} onChange={onChange} style={{ ...inputStyle, ...(error ? { borderColor: "#DC2626" } : {}) }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = error ? "#DC2626" : "#E5E7EB"}>
+      <select name={name} value={value} onChange={onChange} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"}>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     ) : as === "textarea" ? (
-      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", ...(error ? { borderColor: "#DC2626" } : {}) }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = error ? "#DC2626" : "#E5E7EB"} />
+      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} className={`field-input${error ? " has-error" : ""}`} style={{ resize: "vertical", fontFamily: "inherit" }} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
     ) : (
-      <input name={name} value={value} onChange={onChange} placeholder={placeholder} style={{ ...inputStyle, ...(error ? { borderColor: "#DC2626" } : {}) }} onFocus={e => e.target.style.borderColor = "#16A34A"} onBlur={e => e.target.style.borderColor = error ? "#DC2626" : "#E5E7EB"} />
+      <input name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
     )}
-    {error && <p style={{ fontSize: "0.78rem", color: "#DC2626", margin: "0.3rem 0 0" }}>{error}</p>}
+    {error && <p className="field-error">{error}</p>}
   </div>
 );
 
 const Divider = ({ label }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "1.4rem 0 1.1rem" }}>
-    <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
-    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.07em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{label}</span>
-    <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+  <div className="form-divider">
+    <div className="form-divider-line" />
+    <span className="form-divider-label">{label}</span>
+    <div className="form-divider-line" />
   </div>
 );
 
@@ -452,34 +452,26 @@ const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentCh
     onEquipmentChange(selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]);
   };
   return (
-    <div style={{ marginBottom: "1.1rem" }}>
-      <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: "0.25rem" }}>Where do you train?</label>
+    <div className="field">
+      <label className="equip-label">Where do you train?</label>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.85rem", flexWrap: "wrap" }}>
         {[
           { id: "full_gym", label: "🏋️ Commercial gym" },
           { id: "home_gym", label: "🏠 Home gym" },
           { id: "bodyweight", label: "🤸 Bodyweight only" },
         ].map(opt => (
-          <button key={opt.id} onClick={() => onLocationChange(opt.id)} type="button" style={{
-            padding: "0.5rem 1rem", borderRadius: "9px", border: `1.5px solid ${location === opt.id ? "#16A34A" : error ? "#DC2626" : "#E5E7EB"}`,
-            background: location === opt.id ? "#F0FDF4" : "#FAFAFA", color: location === opt.id ? "#15803D" : "#6B7280",
-            fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", transition: "all 0.12s"
-          }}>{opt.label}</button>
+          <button key={opt.id} onClick={() => onLocationChange(opt.id)} type="button" className={`equip-btn${location === opt.id ? " is-selected" : ""}${error ? " has-error" : ""}`}>{opt.label}</button>
         ))}
       </div>
-      {error && <p style={{ fontSize: "0.78rem", color: "#DC2626", margin: "-0.5rem 0 0.6rem" }}>{error}</p>}
+      {error && <p className="equip-error">{error}</p>}
       {location === "home_gym" && (
         <>
-          <p style={{ fontSize: "0.78rem", color: "#9CA3AF", margin: "0 0 0.6rem", lineHeight: 1.4 }}>Select what you have at home — your plan will only use these.</p>
+          <p className="equip-hint">Select what you have at home — your plan will only use these.</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             {HOME_EQUIPMENT_OPTIONS.map(eq => {
               const isSelected = selected.includes(eq.id);
               return (
-                <button key={eq.id} onClick={() => toggle(eq.id)} type="button" style={{
-                  padding: "0.4rem 0.75rem", borderRadius: "20px", border: `1.5px solid ${isSelected ? "#16A34A" : "#E5E7EB"}`,
-                  background: isSelected ? "#F0FDF4" : "#FAFAFA", color: isSelected ? "#15803D" : "#6B7280",
-                  fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", transition: "all 0.12s"
-                }}>
+                <button key={eq.id} onClick={() => toggle(eq.id)} type="button" className={`equip-chip${isSelected ? " is-selected" : ""}`}>
                   {isSelected ? "✓ " : ""}{eq.label}
                 </button>
               );
@@ -1184,10 +1176,10 @@ export default function FitnessPlanGenerator() {
         {!plan && !loading && (
           <>
             <div style={{ marginBottom: "1.75rem" }}>
-              <h1 style={{ fontSize: "1.65rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 0.4rem", color: "#111827" }}>Your plan. Your life.</h1>
-              <p style={{ color: "#6B7280", fontSize: "0.92rem", margin: 0, lineHeight: 1.65 }}>The more specific you are, the more personal your plan will be.</p>
+              <h1 className="form-title">Your plan. Your life.</h1>
+              <p className="form-sub">The more specific you are, the more personal your plan will be.</p>
             </div>
-            <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #E5E7EB", padding: "1.6rem" }}>
+            <div className="form-card">
               <Divider label="Your Goal" />
               <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" error={fieldErrors.goal} />
               <Field label="Specific target" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better — give us a number if you can." />
@@ -1214,31 +1206,29 @@ export default function FitnessPlanGenerator() {
               <Divider label="Your Equipment" />
               <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} error={fieldErrors.equipmentLocation} />
 
-              {error && <p style={{ color: "#DC2626", fontSize: "0.85rem", margin: "0 0 1rem" }}>{error}</p>}
+              {error && <p className="form-error">{error}</p>}
               {atGenerationLimit ? (
-                <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} style={{ width: "100%", padding: "0.8rem", background: "#1D4ED8", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", marginTop: "0.5rem" }}>
+                <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
                   {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans — buy another for €7`}
                 </button>
               ) : (
-                <button onClick={generate} style={{ width: "100%", padding: "0.8rem", background: "#16A34A", color: "#fff", border: "none", borderRadius: "9px", fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", marginTop: "0.5rem" }}
-                  onMouseEnter={e => e.target.style.background = "#15803D"} onMouseLeave={e => e.target.style.background = "#16A34A"}>
+                <button onClick={generate} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
                   Generate My 8-Week Plan →
                 </button>
               )}
             </div>
-            <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", marginTop: "1rem" }}>
-              <span onClick={() => setPage("terms")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Terms of Service</span>
+            <p className="form-legal" style={{ marginTop: "1rem" }}>
+              <span onClick={() => setPage("terms")}>Terms of Service</span>
               {" · "}
-              <span onClick={() => setPage("privacy")} style={{ color: "#16A34A", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
+              <span onClick={() => setPage("privacy")}>Privacy Policy</span>
             </p>
           </>
         )}
 
         {loading && (
           <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div style={{ width: 44, height: 44, border: "3px solid #E5E7EB", borderTopColor: "#16A34A", borderRadius: "50%", animation: "spin 0.75s linear infinite", margin: "0 auto 1rem" }} />
-            <p style={{ color: "#6B7280", fontSize: "0.9rem" }}>Building your personalized plan...</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div className="auth-spinner" style={{ width: 44, height: 44, margin: "0 auto 1rem" }} />
+            <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>Building your personalized plan...</p>
           </div>
         )}
 
