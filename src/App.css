@@ -14,6 +14,175 @@
   }
 }
 
+/* ---------- intake form (goals / schedule / challenges / preferences / equipment) ---------- */
+.form-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+  color: var(--ink);
+}
+
+.form-sub {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 0;
+  line-height: 1.65;
+}
+
+.form-card {
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 1.6rem;
+}
+
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.4rem 0 1.1rem;
+}
+.form-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.form-divider-label {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.field {
+  margin-bottom: 1.1rem;
+}
+.field-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.25rem;
+}
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--faint);
+  margin: 0 0 0.35rem;
+  line-height: 1.4;
+}
+.field-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--paper);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+  font-family: var(--sans);
+}
+.field-input.has-error {
+  border-color: var(--danger);
+}
+.field-error {
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin: 0.3rem 0 0;
+}
+
+.equip-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.25rem;
+}
+.equip-hint {
+  font-size: 0.78rem;
+  color: var(--faint);
+  margin: 0 0 0.6rem;
+  line-height: 1.4;
+}
+.equip-error {
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin: -0.5rem 0 0.6rem;
+}
+.equip-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 9px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: var(--sans);
+}
+.equip-btn.has-error {
+  border-color: var(--danger);
+}
+.equip-btn.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent-deep);
+}
+.equip-chip {
+  padding: 0.4rem 0.75rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: var(--sans);
+}
+.equip-chip.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent-deep);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.btn-cool-solid {
+  background: var(--cool-text);
+  border-color: var(--cool-text);
+  color: #fff;
+}
+.btn-cool-solid:hover {
+  filter: brightness(0.9);
+}
+
+.form-legal {
+  font-size: 0.75rem;
+  color: var(--faint);
+  text-align: center;
+  margin-top: 1rem;
+}
+.form-legal span {
+  color: var(--accent-deep);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ---------- auth screens (login/signup, password recovery, profile-loading gate) ---------- */
 .auth-shell {
   min-height: 100vh;
