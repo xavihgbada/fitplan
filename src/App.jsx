@@ -20,10 +20,16 @@ const exportToPDF = async (plan) => {
   const jsPDF = await loadJsPDF();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  const GREEN = [22, 163, 74];
-  const DARK = [17, 24, 39];
-  const GRAY = [107, 114, 128];
-  const LIGHT_GREEN_BG = [240, 253, 244];
+  const GREEN = [27, 122, 77]; // --accent
+  const GREEN_DEEP = [20, 92, 58]; // --accent-deep
+  const DARK = [22, 35, 28]; // --ink
+  const GRAY = [110, 117, 104]; // --muted
+  const LIGHT_GREEN_BG = [234, 245, 238]; // --accent-bg
+  const PAPER = [248, 247, 242]; // --paper
+  const WARM_BG = [251, 243, 228]; // --warm-bg
+  const WARM_TEXT = [122, 90, 30]; // --warm-text
+  const COOL_BG = [234, 242, 251]; // --cool-bg
+  const COOL_TEXT = [30, 76, 122]; // --cool-text
   const pageW = 210;
   const margin = 16;
   const contentW = pageW - margin * 2;
@@ -51,7 +57,7 @@ const exportToPDF = async (plan) => {
   doc.rect(0, 0, pageW, 28, "F");
   doc.setFontSize(18);
   doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("times", "bold");
   doc.text("FitPlan AI", margin, 12);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -60,7 +66,7 @@ const exportToPDF = async (plan) => {
 
   doc.setFontSize(16);
   doc.setTextColor(...DARK);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("times", "bold");
   doc.text(plan.title, margin, y);
   y += 8;
 
@@ -74,18 +80,18 @@ const exportToPDF = async (plan) => {
   doc.setFillColor(...LIGHT_GREEN_BG);
   doc.roundedRect(margin, y, contentW / 2 - 2, 8, 2, 2, "F");
   doc.setFontSize(8);
-  doc.setTextColor(...GREEN);
+  doc.setTextColor(...GREEN_DEEP);
   doc.setFont("helvetica", "bold");
   doc.text(`Schedule: ${plan.schedule?.join(", ")}`, margin + 3, y + 5.5);
-  doc.setFillColor(239, 246, 255);
+  doc.setFillColor(...COOL_BG);
   doc.roundedRect(margin + contentW / 2 + 2, y, contentW / 2 - 2, 8, 2, 2, "F");
-  doc.setTextColor(29, 78, 216);
+  doc.setTextColor(...COOL_TEXT);
   doc.text(`Duration: ${plan.weeks} weeks`, margin + contentW / 2 + 5, y + 5.5);
   y += 14;
 
   if (plan.weeks_breakdown) {
     checkPage(20);
-    doc.setFillColor(249, 250, 251);
+    doc.setFillColor(...PAPER);
     doc.roundedRect(margin, y, contentW, plan.weeks_breakdown.length * 9 + 10, 3, 3, "F");
     doc.setFontSize(7);
     doc.setTextColor(...GRAY);
@@ -120,7 +126,7 @@ const exportToPDF = async (plan) => {
     doc.roundedRect(margin, y, contentW, 10, 2, 2, "F");
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("times", "bold");
     doc.text(`${w.day.toUpperCase()} — ${w.name}`, margin + 4, y + 7);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
@@ -128,11 +134,11 @@ const exportToPDF = async (plan) => {
     y += 13;
 
     checkPage(10);
-    doc.setFillColor(255, 251, 235);
+    doc.setFillColor(...WARM_BG);
     const warmupLines = doc.splitTextToSize(`Warm-up: ${w.warmup}`, contentW - 8);
     doc.roundedRect(margin, y, contentW, warmupLines.length * 4.5 + 6, 2, 2, "F");
     doc.setFontSize(7);
-    doc.setTextColor(146, 64, 14);
+    doc.setTextColor(...WARM_TEXT);
     doc.setFont("helvetica", "bold");
     doc.text("WARM-UP", margin + 3, y + 5);
     doc.setFont("helvetica", "normal");
@@ -143,15 +149,15 @@ const exportToPDF = async (plan) => {
 
     w.exercises?.forEach((ex, i) => {
       checkPage(12);
-      doc.setFillColor(i % 2 === 0 ? 249 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 251 : 255);
+      doc.setFillColor(...(i % 2 === 0 ? PAPER : [255, 255, 255]));
       const noteLines = ex.note ? doc.splitTextToSize(ex.note, contentW - 40) : [];
       const rowH = 10 + (noteLines.length > 0 ? noteLines.length * 3.5 + 2 : 0);
       doc.roundedRect(margin, y, contentW, rowH, 1.5, 1.5, "F");
 
-      doc.setFillColor(229, 231, 235);
+      doc.setFillColor(228, 227, 218);
       doc.circle(margin + 6, y + 5, 4, "F");
       doc.setFontSize(7);
-      doc.setTextColor(55, 65, 81);
+      doc.setTextColor(...DARK);
       doc.setFont("helvetica", "bold");
       doc.text(String(i + 1), margin + 4.5, y + 6.5);
 
@@ -175,17 +181,17 @@ const exportToPDF = async (plan) => {
       doc.setFontSize(7);
       doc.setTextColor(...GRAY);
       doc.setFont("helvetica", "normal");
-      doc.text(ex.rest, pageW - margin - 20, y + 9.5);
+      doc.text(`${ex.rest} rest`, pageW - margin - 20, y + 9.5);
 
       y += rowH + 1.5;
     });
 
     checkPage(10);
-    doc.setFillColor(240, 253, 244);
+    doc.setFillColor(...LIGHT_GREEN_BG);
     const cooldownLines = doc.splitTextToSize(w.cooldown, contentW - 24);
     doc.roundedRect(margin, y, contentW, cooldownLines.length * 4.5 + 6, 2, 2, "F");
     doc.setFontSize(7);
-    doc.setTextColor(22, 101, 52);
+    doc.setTextColor(...GREEN_DEEP);
     doc.setFont("helvetica", "bold");
     doc.text("COOL-DOWN", margin + 3, y + 5);
     doc.setFont("helvetica", "normal");
@@ -196,7 +202,7 @@ const exportToPDF = async (plan) => {
 
   if (plan.nutrition_tips) {
     checkPage(30);
-    doc.setFillColor(249, 250, 251);
+    doc.setFillColor(...PAPER);
     doc.roundedRect(margin, y, contentW, plan.nutrition_tips.length * 8 + 12, 3, 3, "F");
     doc.setFontSize(7);
     doc.setTextColor(...GRAY);
@@ -222,11 +228,11 @@ const exportToPDF = async (plan) => {
     const motLines = doc.splitTextToSize(plan.motivation_strategy, contentW - 8);
     doc.roundedRect(margin, y, contentW, motLines.length * 4.5 + 12, 3, 3, "F");
     doc.setFontSize(7);
-    doc.setTextColor(...GREEN);
+    doc.setTextColor(...GREEN_DEEP);
     doc.setFont("helvetica", "bold");
     doc.text("MOTIVATION STRATEGY", margin + 4, y + 6);
     doc.setFontSize(8);
-    doc.setTextColor(21, 128, 61);
+    doc.setTextColor(...GREEN_DEEP);
     doc.setFont("helvetica", "normal");
     doc.text(motLines, margin + 4, y + 11);
     y += motLines.length * 4.5 + 16;
@@ -234,11 +240,11 @@ const exportToPDF = async (plan) => {
 
   if (plan.weekly_checkin) {
     checkPage(20);
-    doc.setFillColor(239, 246, 255);
+    doc.setFillColor(...COOL_BG);
     const checkLines = doc.splitTextToSize(plan.weekly_checkin, contentW - 8);
     doc.roundedRect(margin, y, contentW, checkLines.length * 4.5 + 12, 3, 3, "F");
     doc.setFontSize(7);
-    doc.setTextColor(29, 78, 216);
+    doc.setTextColor(...COOL_TEXT);
     doc.setFont("helvetica", "bold");
     doc.text("WEEKLY CHECK-IN", margin + 4, y + 6);
     doc.setFontSize(8);
@@ -422,7 +428,7 @@ const TypeTag = ({ type }) => {
 
 const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid #E5E7EB", fontSize: "0.9rem", color: "#111827", background: "#FAFAFA", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
 
-const Field = ({ label, name, value, onChange, placeholder, as = "input", options, hint, error }) => (
+const Field = ({ label, name, value, onChange, placeholder, as = "input", type = "text", options, hint, error }) => (
   <div className="field">
     <label className="field-label">{label}</label>
     {hint && <p className="field-hint">{hint}</p>}
@@ -433,7 +439,7 @@ const Field = ({ label, name, value, onChange, placeholder, as = "input", option
     ) : as === "textarea" ? (
       <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} className={`field-input${error ? " has-error" : ""}`} style={{ resize: "vertical", fontFamily: "inherit" }} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
     ) : (
-      <input name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
+      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
     )}
     {error && <p className="field-error">{error}</p>}
   </div>
@@ -1188,7 +1194,7 @@ export default function FitnessPlanGenerator() {
               <Field label="Other physical activity or sports" name="otherActivity" value={form.otherActivity} onChange={handleChange} placeholder="e.g. Football on Tuesdays and Thursdays, badminton twice a week" hint="Include anything physical — this prevents the plan from clashing with your existing activity." />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.85rem" }}>
                 <Field label="Gym days per week" name="days" value={form.days} onChange={handleChange} as="select" options={[2,3,4,5,6].map(n => ({ value: String(n), label: `${n} days` }))} />
-                <Field label="Minutes per session" name="time" value={form.time} onChange={handleChange} as="select" options={[30,45,60,75,90].map(n => ({ value: String(n), label: `${n} min` }))} />
+                <Field label="Minutes per session" name="time" value={form.time} onChange={handleChange} type="number" placeholder="e.g. 45" />
                 <Field label="Preferred time" name="trainTime" value={form.trainTime} onChange={handleChange} as="select" options={[{ value: "morning", label: "Morning" }, { value: "afternoon", label: "Afternoon" }, { value: "evening", label: "Evening" }, { value: "flexible", label: "Flexible" }]} />
               </div>
               <Field label="Specific days? (optional)" name="specificDays" value={form.specificDays} onChange={handleChange} placeholder="e.g. Monday, Wednesday, Friday — leave blank to let the plan decide" hint="Only fill this in if you have fixed days." />
