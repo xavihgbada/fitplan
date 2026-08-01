@@ -67,8 +67,9 @@ const exportToPDF = async (plan) => {
   doc.setFontSize(16);
   doc.setTextColor(...DARK);
   doc.setFont("times", "bold");
-  doc.text(plan.title, margin, y);
-  y += 8;
+  const titleLines = doc.splitTextToSize(plan.title, contentW);
+  doc.text(titleLines, margin, y);
+  y += titleLines.length * 8 + 2;
 
   doc.setFontSize(9);
   doc.setTextColor(...GRAY);
@@ -159,7 +160,7 @@ const exportToPDF = async (plan) => {
       doc.setFontSize(7);
       doc.setTextColor(...DARK);
       doc.setFont("helvetica", "bold");
-      doc.text(String(i + 1), margin + 4.5, y + 6.5);
+      doc.text(String(i + 1), margin + 6, y + 5, { align: "center", baseline: "middle" });
 
       doc.setFontSize(8.5);
       doc.setTextColor(...DARK);
@@ -177,11 +178,11 @@ const exportToPDF = async (plan) => {
       doc.setTextColor(...GREEN);
       doc.setFont("helvetica", "bold");
       const setsText = `${ex.sets}×${ex.reps}`;
-      doc.text(setsText, pageW - margin - 24, y + 5.5);
+      doc.text(setsText, pageW - margin - 4, y + 5.5, { align: "right" });
       doc.setFontSize(7);
       doc.setTextColor(...GRAY);
       doc.setFont("helvetica", "normal");
-      doc.text(`${ex.rest} rest`, pageW - margin - 20, y + 9.5);
+      doc.text(`${ex.rest} rest`, pageW - margin - 4, y + 9.5, { align: "right" });
 
       y += rowH + 1.5;
     });
