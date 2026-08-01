@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TermsOfService, PrivacyPolicy } from "./legal";
 
@@ -549,6 +549,10 @@ export default function FitnessPlanGenerator() {
   }, [session]);
 
   useEffect(() => {
+    // After returning from Stripe checkout, poll for a little while so the
+    // has_paid flip (written by the webhook, asynchronously) shows up without
+    // requiring a manual refresh. Migration itself is handled by the
+    // has_paid-driven effect below — this just keeps `profile` fresh.
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success" && session) {
       window.history.replaceState({}, "", window.location.pathname);
@@ -556,31 +560,7 @@ export default function FitnessPlanGenerator() {
       const interval = setInterval(async () => {
         attempts++;
         const data = await loadProfile();
-        if (data?.has_paid) {
-          clearInterval(interval);
-          const key = `fitplan_pending_plan_${session.user.id}`;
-          const raw = localStorage.getItem(key);
-          if (raw) {
-            try {
-              const { plan: pendingPlan } = JSON.parse(raw);
-              setPlan(pendingPlan);
-              setActiveWorkout(0);
-              await savePlan(pendingPlan);
-              await fetch("/api/track-generation", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId: session.user.id }),
-              });
-              loadProfile();
-            } catch (e) {
-              // nothing valid to restore — user will just see the generator screen
-            } finally {
-              localStorage.removeItem(key);
-            }
-          }
-          return;
-        }
-        if (attempts >= 5) clearInterval(interval);
+        if (data?.has_paid || attempts >= 5) clearInterval(interval);
       }, 1500);
       return () => clearInterval(interval);
     }
@@ -603,6 +583,40 @@ export default function FitnessPlanGenerator() {
       }
     }
   }, [session, profile]);
+
+  const migratingPendingPlanRef = useRef(false);
+  useEffect(() => {
+    // Runs any time has_paid is (or becomes) true for this session — on the
+    // checkout-success redirect, on a plain refresh after has_paid flipped
+    // while the tab was open, or after an out-of-band change (e.g. a manual
+    // profile edit). Not gated on a URL param or a time-boxed poll, so a
+    // pending plan can never be permanently stranded in localStorage.
+    if (!session || !profile?.has_paid || migratingPendingPlanRef.current) return;
+    const key = `fitplan_pending_plan_${session.user.id}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    migratingPendingPlanRef.current = true;
+    (async () => {
+      try {
+        const { plan: pendingPlan, createdAt } = JSON.parse(raw);
+        if (Date.now() - createdAt < 24 * 60 * 60 * 1000) {
+          setPlan(pendingPlan);
+          setActiveWorkout(0);
+          await savePlan(pendingPlan);
+          await fetch("/api/track-generation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: session.user.id }),
+          });
+          loadProfile();
+        }
+      } catch (e) {
+        // nothing valid to migrate — user will just see the generator screen
+      } finally {
+        localStorage.removeItem(key);
+      }
+    })();
+  }, [session, profile?.has_paid]);
 
   const loadProfile = async () => {
     if (!session) return null;
