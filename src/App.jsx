@@ -78,17 +78,22 @@ const exportToPDF = async (plan) => {
   doc.text(summaryLines, margin, y);
   y += summaryLines.length * 4.5 + 4;
 
-  doc.setFillColor(...LIGHT_GREEN_BG);
-  doc.roundedRect(margin, y, contentW / 2 - 2, 8, 2, 2, "F");
+  const pillW = contentW / 2 - 2;
   doc.setFontSize(8);
-  doc.setTextColor(...GREEN_DEEP);
   doc.setFont("helvetica", "bold");
-  doc.text(`Schedule: ${plan.schedule?.join(", ")}`, margin + 3, y + 5.5);
+  const scheduleLines = doc.splitTextToSize(`Schedule: ${plan.schedule?.join(", ")}`, pillW - 6);
+  const durationLines = doc.splitTextToSize(`Duration: ${plan.weeks} weeks`, pillW - 6);
+  const pillH = Math.max(scheduleLines.length, durationLines.length) * 4 + 4;
+
+  doc.setFillColor(...LIGHT_GREEN_BG);
+  doc.roundedRect(margin, y, pillW, pillH, 2, 2, "F");
+  doc.setTextColor(...GREEN_DEEP);
+  doc.text(scheduleLines, margin + 3, y + 5);
   doc.setFillColor(...COOL_BG);
-  doc.roundedRect(margin + contentW / 2 + 2, y, contentW / 2 - 2, 8, 2, 2, "F");
+  doc.roundedRect(margin + contentW / 2 + 2, y, pillW, pillH, 2, 2, "F");
   doc.setTextColor(...COOL_TEXT);
-  doc.text(`Duration: ${plan.weeks} weeks`, margin + contentW / 2 + 5, y + 5.5);
-  y += 14;
+  doc.text(durationLines, margin + contentW / 2 + 5, y + 5);
+  y += pillH + 6;
 
   if (plan.weeks_breakdown) {
     checkPage(20);
@@ -105,7 +110,7 @@ const exportToPDF = async (plan) => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
-      doc.text(String(i + 1), margin + 5.8, y + 4);
+      doc.text(String(i + 1), margin + 7, y + 2.5, { align: "center", baseline: "middle" });
       doc.setTextColor(...DARK);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
@@ -136,15 +141,16 @@ const exportToPDF = async (plan) => {
 
     checkPage(10);
     doc.setFillColor(...WARM_BG);
-    const warmupLines = doc.splitTextToSize(`Warm-up: ${w.warmup}`, contentW - 8);
-    doc.roundedRect(margin, y, contentW, warmupLines.length * 4.5 + 6, 2, 2, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    const warmupTextLines = doc.splitTextToSize(w.warmup, contentW - 24);
+    doc.roundedRect(margin, y, contentW, warmupTextLines.length * 4.5 + 6, 2, 2, "F");
     doc.setFontSize(7);
     doc.setTextColor(...WARM_TEXT);
     doc.setFont("helvetica", "bold");
     doc.text("WARM-UP", margin + 3, y + 5);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    const warmupTextLines = doc.splitTextToSize(w.warmup, contentW - 24);
     doc.text(warmupTextLines, margin + 20, y + 5);
     y += warmupTextLines.length * 4.5 + 8;
 
@@ -189,6 +195,8 @@ const exportToPDF = async (plan) => {
 
     checkPage(10);
     doc.setFillColor(...LIGHT_GREEN_BG);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
     const cooldownLines = doc.splitTextToSize(w.cooldown, contentW - 24);
     doc.roundedRect(margin, y, contentW, cooldownLines.length * 4.5 + 6, 2, 2, "F");
     doc.setFontSize(7);
