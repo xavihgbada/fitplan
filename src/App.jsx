@@ -618,6 +618,8 @@ export default function FitnessPlanGenerator() {
             body: JSON.stringify({ userId: session.user.id }),
           });
           loadProfile();
+        } else {
+          setError("Your plan draft expired after 24 hours and couldn't be recovered — please generate a new one.");
         }
       } catch (e) {
         // nothing valid to migrate — user will just see the generator screen
