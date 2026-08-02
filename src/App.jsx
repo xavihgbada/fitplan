@@ -1142,9 +1142,14 @@ export default function FitnessPlanGenerator() {
             )
           )}
           {plan && !profile?.has_paid && (
-            <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
-              {checkingOut === "unlock" ? "Redirecting..." : "🔓 Unlock this plan — €19"}
-            </button>
+            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
+              <span style={{ fontSize: "0.68rem", color: "var(--faint)", textAlign: "right", maxWidth: 220, lineHeight: 1.3 }}>
+                Your plan is saved in your browser for 24 hours. Unlock to save it permanently and access it anytime.
+              </span>
+              <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
+                {checkingOut === "unlock" ? "Redirecting..." : "🔓 Unlock this plan — €19"}
+              </button>
+            </div>
           )}
           {plan && profile?.has_paid && (
             <>
