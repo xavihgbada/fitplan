@@ -437,22 +437,65 @@ const TypeTag = ({ type }) => {
 
 const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid #E5E7EB", fontSize: "0.9rem", color: "#111827", background: "#FAFAFA", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
 
-const Field = ({ label, name, value, onChange, placeholder, as = "input", type = "text", options, hint, error }) => (
-  <div className="field">
-    <label className="field-label">{label}</label>
-    {hint && <p className="field-hint">{hint}</p>}
-    {as === "select" ? (
-      <select name={name} value={value} onChange={onChange} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    ) : as === "textarea" ? (
-      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} className={`field-input${error ? " has-error" : ""}`} style={{ resize: "vertical", fontFamily: "inherit" }} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
-    ) : (
-      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
-    )}
-    {error && <p className="field-error">{error}</p>}
-  </div>
-);
+const Field = ({ label, name, value, onChange, placeholder, as = "input", type = "text", options, hint, error, suggestions }) => {
+  const isDropdown = as === "select" || !!suggestions;
+  const [open, setOpen] = useState(false);
+  const comboRef = useRef(null);
+
+  useEffect(() => {
+    if (!isDropdown) return;
+    const handleClick = (e) => {
+      if (comboRef.current && !comboRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isDropdown]);
+
+  const pick = (val) => {
+    onChange({ target: { name, value: val } });
+    setOpen(false);
+  };
+
+  const selectedLabel = as === "select" ? options.find(o => o.value === value)?.label : null;
+
+  return (
+    <div className="field">
+      <label className="field-label">{label}</label>
+      {hint && <p className="field-hint">{hint}</p>}
+      {as === "select" ? (
+        <div className="combo-wrap" ref={comboRef}>
+          <button type="button" className={`field-input combo-trigger${error ? " has-error" : ""}`} onClick={() => setOpen(o => !o)}>
+            <span>{selectedLabel}</span>
+            <span className="combo-chevron">▾</span>
+          </button>
+          {open && (
+            <div className="combo-menu">
+              {options.map(o => (
+                <div key={o.value} className={`combo-option${o.value === value ? " is-selected" : ""}`} onMouseDown={() => pick(o.value)}>{o.label}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : as === "textarea" ? (
+        <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2} className={`field-input${error ? " has-error" : ""}`} style={{ resize: "vertical", fontFamily: "inherit" }} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
+      ) : suggestions ? (
+        <div className="combo-wrap" ref={comboRef}>
+          <input name={name} value={value} onChange={onChange} placeholder={placeholder} autoComplete="off" className={`field-input${error ? " has-error" : ""}`} onFocus={e => { e.target.style.borderColor = "var(--accent)"; setOpen(true); }} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
+          {open && (
+            <div className="combo-menu">
+              {suggestions.map(opt => (
+                <div key={opt} className="combo-option" onMouseDown={() => pick(opt)}>{opt}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
+      )}
+      {error && <p className="field-error">{error}</p>}
+    </div>
+  );
+};
 
 const Divider = ({ label }) => (
   <div className="form-divider">
@@ -1217,8 +1260,8 @@ export default function FitnessPlanGenerator() {
             </div>
             <div className="form-card">
               <Divider label="Your Goal" />
-              <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" error={fieldErrors.goal} />
-              <Field label="Specific target" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better — give us a number if you can." />
+              <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" error={fieldErrors.goal} suggestions={["Build muscle", "Lose fat", "Build muscle while losing fat", "Get stronger", "Improve general fitness and health", "Improve endurance / cardio", "Train for a sport or event"]} />
+              <Field label="Specific target (optional)" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better — give us a number if you can." />
 
               <Divider label="Your Schedule" />
               <Field label="Other physical activity or sports" name="otherActivity" value={form.otherActivity} onChange={handleChange} placeholder="e.g. Football on Tuesdays and Thursdays, badminton twice a week" hint="Include anything physical — this prevents the plan from clashing with your existing activity." />
