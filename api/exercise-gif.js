@@ -1,6 +1,11 @@
+import { getVerifiedUser } from "./_lib/supabaseAuth.js";
+
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
-  
+
+  const user = await getVerifiedUser(req);
+  if (!user) return res.status(401).json({ error: "Authentication required" });
+
   const { name } = req.query;
   if (!name) return res.status(400).json({ error: "No exercise name provided" });
 

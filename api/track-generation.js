@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUser } from "./_lib/supabaseAuth.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -7,8 +8,13 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+  const user = await getVerifiedUser(req);
+  if (!user) return res.status(401).json({ error: "Authentication required" });
+  if (req.body?.userId && req.body.userId !== user.id) {
+    return res.status(403).json({ error: "User mismatch" });
+  }
+  const userId = user.id;
 
   const { data } = await supabaseAdmin
     .from("profiles")

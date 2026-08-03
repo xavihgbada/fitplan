@@ -657,7 +657,7 @@ export default function FitnessPlanGenerator() {
           await savePlan(pendingPlan);
           await fetch("/api/track-generation", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
             body: JSON.stringify({ userId: session.user.id }),
           });
           loadProfile();
@@ -689,7 +689,7 @@ export default function FitnessPlanGenerator() {
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ userId: session.user.id, type }),
       });
       const data = await res.json();
@@ -805,7 +805,7 @@ export default function FitnessPlanGenerator() {
     try {
       const res = await fetch("/api/generate-plan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 8000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: buildPrompt(form) }] }),
       });
       const data = await res.json();
@@ -822,7 +822,7 @@ export default function FitnessPlanGenerator() {
         await savePlan(parsed);
         await fetch("/api/track-generation", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({ userId: session.user.id }),
         });
         loadProfile();
@@ -903,7 +903,7 @@ export default function FitnessPlanGenerator() {
 
       const res = await fetch("/api/adjust-plan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 8000,

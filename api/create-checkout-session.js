@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { getVerifiedUser } from "./_lib/supabaseAuth.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -9,17 +10,23 @@ const PRICES = {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  const { userId, type } = req.body;
 
+  const user = await getVerifiedUser(req);
+  if (!user) return res.status(401).json({ error: "Authentication required" });
+  if (req.body?.userId && req.body.userId !== user.id) {
+    return res.status(403).json({ error: "User mismatch" });
+  }
+
+  const { type } = req.body;
   const chosen = PRICES[type];
-  if (!userId || !chosen) return res.status(400).json({ error: "Invalid request" });
+  if (!chosen) return res.status(400).json({ error: "Invalid request" });
 
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      client_reference_id: userId,
-      metadata: { type, userId },
+      client_reference_id: user.id,
+      metadata: { type, userId: user.id },
       line_items: [
         {
           price_data: {
