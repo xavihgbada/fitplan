@@ -1,5 +1,11 @@
+import { getVerifiedUser } from "./_lib/supabaseAuth.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+
+  const user = await getVerifiedUser(req);
+  if (!user) return res.status(401).json({ error: "Authentication required" });
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
