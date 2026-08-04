@@ -14,6 +14,37 @@
   }
 }
 
+/* ---------- unpaid plan preview badge ---------- */
+.preview-badge-host {
+  position: relative;
+}
+.preview-badge {
+  position: absolute;
+  top: -0.4rem;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+.preview-badge svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--faint);
+}
+
 /* ---------- combobox (typable field with suggestions, e.g. fitness goal) ---------- */
 .combo-wrap {
   position: relative;

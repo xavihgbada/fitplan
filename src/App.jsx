@@ -1190,7 +1190,15 @@ export default function FitnessPlanGenerator() {
                 Your plan is saved in your browser for 24 hours. Unlock to save it permanently and access it anytime.
               </span>
               <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
-                {checkingOut === "unlock" ? "Redirecting..." : "🔓 Unlock this plan — €19"}
+                {checkingOut === "unlock" ? "Redirecting..." : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12, verticalAlign: -1, marginRight: "0.35rem" }}>
+                      <rect x="5" y="11" width="14" height="10" rx="2" />
+                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                    </svg>
+                    Unlock this plan — €19
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -1313,7 +1321,16 @@ export default function FitnessPlanGenerator() {
 
         {plan && (
           <div>
-            <div style={{ marginBottom: "1.5rem" }}>
+            <div style={{ marginBottom: "1.5rem" }} className={!profile?.has_paid ? "preview-badge-host" : undefined}>
+              {!profile?.has_paid && (
+                <div className="preview-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                  </svg>
+                  Preview
+                </div>
+              )}
               <h2 className="results-title">{plan.title}</h2>
               <p className="results-summary">{plan.summary}</p>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
