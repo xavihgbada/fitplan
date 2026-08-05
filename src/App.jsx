@@ -432,8 +432,14 @@ const GLOSSARY_TERMS = [
   { id: "rir", pattern: /\bRIR\b/gi, definition: "Reps in reserve — how many more reps you could still do before hitting failure." },
   { id: "progressive-overload", pattern: /\bprogressive overload\b/gi, definition: "Gradually increasing weight, reps, or sets over time so your muscles keep adapting." },
   { id: "failure", pattern: /\btrain(?:ing)? to failure\b/gi, definition: "Doing reps until you physically can't complete another one with good form." },
+  { id: "mechanical-drop-set", pattern: /\bmechanical drop sets?\b/gi, definition: "Switching to an easier variation of the same exercise right after failure, instead of just lowering the weight." },
   { id: "drop-set", pattern: /\bdrop sets?\b/gi, definition: "Cutting the weight and continuing reps immediately after reaching failure, with no rest." },
+  { id: "rest-pause-set", pattern: /\brest-pause sets?\b/gi, definition: "Pausing briefly after near-failure, then squeezing out a few more reps with the same weight." },
+  { id: "myo-reps", pattern: /\bmyo-?reps\b/gi, definition: "One hard set followed by short rest-pause mini-sets to extend muscle work with less total volume." },
   { id: "superset", pattern: /\bsupersets?\b/gi, definition: "Two exercises performed back-to-back with no rest in between." },
+  { id: "deload", pattern: /\bdeloads?\b/gi, definition: "A planned lighter week — less weight or volume — that lets your body recover before pushing hard again." },
+  { id: "intensification", pattern: /\bintensification\b/gi, definition: "Techniques like drop sets or rest-pause that make a set harder without adding more sets." },
+  { id: "connective-tissue-tolerance", pattern: /\bconnective tissue tolerance\b/gi, definition: "How much stress your tendons and ligaments can handle before they need extra recovery time." },
 ];
 const GLOSSARY_REGEX = new RegExp(GLOSSARY_TERMS.map(t => t.pattern.source).join("|"), "gi");
 const findGlossaryTerm = (matchText) =>
@@ -1148,7 +1154,7 @@ export default function FitnessPlanGenerator() {
                       <div className="exercise-stats">
                         <div className="exercise-sets" style={{ fontSize: "0.8rem" }}>{ex.sets}×{ex.reps}</div>
                         <div className="exercise-rest">{ex.rest} rest</div>
-                        {ex.effort && <div className="exercise-effort">{ex.effort}</div>}
+                        {ex.effort && <div className="exercise-effort">{i === 0 ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                       </div>
                     </div>
                   </div>
@@ -1465,7 +1471,7 @@ export default function FitnessPlanGenerator() {
                               <div className="exercise-stats">
                                 <div className="exercise-sets">{ex.sets}×{ex.reps}</div>
                                 <div className="exercise-rest">{ex.rest} rest</div>
-                                {ex.effort && <div className="exercise-effort">{renderWithGlossary(ex.effort)}</div>}
+                                {ex.effort && <div className="exercise-effort">{i === 0 ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                               </div>
                             </div>
                           </div>

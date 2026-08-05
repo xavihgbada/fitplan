@@ -774,7 +774,6 @@
   background: var(--paper);
   border-radius: 9px;
   border: 1px solid var(--line-soft);
-  overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 .exercise-card:hover {
