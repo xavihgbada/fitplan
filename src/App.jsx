@@ -440,6 +440,8 @@ const GLOSSARY_TERMS = [
   { id: "deload", pattern: /\bdeloads?\b/gi, definition: "A planned lighter week — less weight or volume — that lets your body recover before pushing hard again." },
   { id: "intensification", pattern: /\bintensification\b/gi, definition: "Techniques like drop sets or rest-pause that make a set harder without adding more sets." },
   { id: "connective-tissue-tolerance", pattern: /\bconnective tissue tolerance\b/gi, definition: "How much stress your tendons and ligaments can handle before they need extra recovery time." },
+  { id: "form-focus", pattern: /\bform focus\b/gi, definition: "Prioritize clean technique over intensity — these sets aren't meant to feel hard yet." },
+  { id: "light-effort", pattern: /\blight effort\b/gi, definition: "Keep these sets comfortably easy — building the movement pattern matters more than intensity here." },
 ];
 const GLOSSARY_REGEX = new RegExp(GLOSSARY_TERMS.map(t => t.pattern.source).join("|"), "gi");
 const findGlossaryTerm = (matchText) =>
@@ -486,6 +488,39 @@ const renderWithGlossary = (text) => {
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
   return parts;
 };
+
+// Groups effort labels into a "kind" so e.g. "2 RIR" and "3-4 RIR" count as the same term for
+// first-occurrence tracking, independent of exercise position.
+const getEffortKind = (effort) => {
+  if (!effort) return null;
+  if (/RIR/i.test(effort)) return "rir";
+  if (/train(?:ing)? to failure/i.test(effort)) return "failure";
+  return effort.trim().toLowerCase();
+};
+
+// Given a day's exercise list, returns the set of indices whose effort label is the first
+// occurrence of its kind that day — those get the tooltip, repeats render as plain text.
+const getFirstEffortIndices = (exercises) => {
+  const seenKinds = new Set();
+  const indices = new Set();
+  exercises?.forEach((ex, i) => {
+    const kind = getEffortKind(ex.effort);
+    if (kind && !seenKinds.has(kind)) {
+      seenKinds.add(kind);
+      indices.add(i);
+    }
+  });
+  return indices;
+};
+
+const LANDING_PREVIEW_EXERCISES = [
+  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
+  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
+  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control — this is what actually builds shoulder width." },
+  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", effort: "Train to failure", note: "Replaces the skull crusher you said caused elbow pain." },
+  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
+];
+const LANDING_PREVIEW_FIRST_EFFORT_INDICES = getFirstEffortIndices(LANDING_PREVIEW_EXERCISES);
 
 const TAG_COLORS = {
   "Strength": { bg: "#EFF6FF", color: "#1D4ED8" },
@@ -1138,13 +1173,7 @@ export default function FitnessPlanGenerator() {
                   <span className="info-box-label">Warm-up</span>
                   <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min band pull-aparts, arm circles, and light incline push-ups</p>
                 </div>
-                {[
-                  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
-                  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
-                  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control — this is what actually builds shoulder width." },
-                  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", effort: "Train to failure", note: "Replaces the skull crusher you said caused elbow pain." },
-                  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
-                ].map((ex, i) => (
+                {LANDING_PREVIEW_EXERCISES.map((ex, i) => (
                   <div key={i} className="exercise-card" style={{ marginBottom: "0.5rem" }}>
                     <div className="exercise-row" style={{ gridTemplateColumns: "1fr auto", padding: "0.7rem 0.85rem" }}>
                       <div>
@@ -1154,7 +1183,7 @@ export default function FitnessPlanGenerator() {
                       <div className="exercise-stats">
                         <div className="exercise-sets" style={{ fontSize: "0.8rem" }}>{ex.sets}×{ex.reps}</div>
                         <div className="exercise-rest">{ex.rest} rest</div>
-                        {ex.effort && <div className="exercise-effort">{i === 0 ? renderWithGlossary(ex.effort) : ex.effort}</div>}
+                        {ex.effort && <div className="exercise-effort">{LANDING_PREVIEW_FIRST_EFFORT_INDICES.has(i) ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                       </div>
                     </div>
                   </div>
@@ -1439,6 +1468,7 @@ export default function FitnessPlanGenerator() {
                 </div>
                 {plan.workouts[activeWorkout] && (() => {
                   const w = plan.workouts[activeWorkout];
+                  const firstEffortIndices = getFirstEffortIndices(w.exercises);
                   return (
                     <div className="workout-panel" key={activeWorkout}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
@@ -1471,7 +1501,7 @@ export default function FitnessPlanGenerator() {
                               <div className="exercise-stats">
                                 <div className="exercise-sets">{ex.sets}×{ex.reps}</div>
                                 <div className="exercise-rest">{ex.rest} rest</div>
-                                {ex.effort && <div className="exercise-effort">{i === 0 ? renderWithGlossary(ex.effort) : ex.effort}</div>}
+                                {ex.effort && <div className="exercise-effort">{firstEffortIndices.has(i) ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                               </div>
                             </div>
                           </div>
