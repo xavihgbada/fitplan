@@ -158,7 +158,7 @@ const exportToPDF = async (plan) => {
       checkPage(12);
       doc.setFillColor(...(i % 2 === 0 ? PAPER : [255, 255, 255]));
       const noteLines = ex.note ? doc.splitTextToSize(ex.note, contentW - 40) : [];
-      const rowH = 10 + (noteLines.length > 0 ? noteLines.length * 3.5 + 2 : 0);
+      const rowH = 10 + (noteLines.length > 0 ? noteLines.length * 3.5 + 2 : 0) + (ex.effort ? 3.5 : 0);
       doc.roundedRect(margin, y, contentW, rowH, 1.5, 1.5, "F");
 
       doc.setFillColor(228, 227, 218);
@@ -189,6 +189,9 @@ const exportToPDF = async (plan) => {
       doc.setTextColor(...GRAY);
       doc.setFont("helvetica", "normal");
       doc.text(`${ex.rest} rest`, pageW - margin - 4, y + 9.5, { align: "right" });
+      if (ex.effort) {
+        doc.text(ex.effort, pageW - margin - 4, y + 13, { align: "right" });
+      }
 
       y += rowH + 1.5;
     });
@@ -304,7 +307,7 @@ const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized wor
       "type": "Strength",
       "warmup": "5 min dynamic stretching — arm circles, leg swings, torso rotations",
       "exercises": [
-        { "name": "Exercise name", "sets": "3", "reps": "10-12", "rest": "60s", "note": "Optional form tip" }
+        { "name": "Exercise name", "sets": "3", "reps": "10-12", "rest": "60s", "effort": "2 RIR", "note": "Optional form tip" }
       ],
       "cooldown": "5 min static stretching, focus on worked muscles"
     }
@@ -323,6 +326,14 @@ VOLUME GUIDELINES — calibrate total weekly sets per muscle group to fitness le
 - Intermediate: 12-18 sets per muscle group per week
 - Advanced: 16-22 sets per muscle group per week
 If the user requests emphasis on a specific muscle group, add 2-4 sets above their baseline spread across the week — never spike volume disproportionately in a single session. Only exceed these ranges if the user explicitly requests a specialization or high-volume program.
+
+EFFORT TARGETS — CRITICAL: every strength/hypertrophy working set needs an "effort" value — an RIR (reps in reserve) range or "Train to failure":
+- Compound lifts earlier in a session get a more conservative RIR than isolation/finisher moves later in the same session.
+- Beginner: conservative (2-3 RIR), rarely true failure. The first time RIR appears in a beginner's plan, add a one-sentence plain-language explanation of what it means in that exercise's "note".
+- Intermediate/advanced: tighter (1-2 RIR), with occasional true-failure sets allowed, especially in the Peak phase.
+- Leave "effort" as "" for cardio/conditioning work (use pace/duration/heart-rate cues in "note" instead), warm-ups, cooldowns, and early-weeks technique-priority moves for beginners — prioritize form cues there instead.
+- Never target failure, and keep RIR conservative, for any exercise affected by the person's stated injuries/limitations.
+- This governs how hard each set is pushed, not how many sets are programmed — never let it push volume outside the VOLUME GUIDELINES ranges above.
 
 SESSION BALANCE — CRITICAL: within a single session, never let more than 2 of the exercises target the same primary muscle group unless the user explicitly requested a specialization day for that muscle. This matters most for low-frequency plans (2-3 gym days/week, especially when complementing other activities like classes or sports) — these sessions should train multiple muscle groups in a balanced, close-to-full-body way rather than concentrating on one area. Check your own exercise list against this rule before finalizing the plan.
 
@@ -347,7 +358,7 @@ const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitnes
     {
       "day": "Monday", "name": "...", "duration": "45 min", "type": "Strength",
       "warmup": "...",
-      "exercises": [ { "name": "...", "sets": "3", "reps": "10-12", "rest": "60s", "note": "..." } ],
+      "exercises": [ { "name": "...", "sets": "3", "reps": "10-12", "rest": "60s", "effort": "2 RIR", "note": "..." } ],
       "cooldown": "..."
     }
   ],
@@ -370,6 +381,7 @@ ADJUSTMENT RULES:
 - Keep the same days, equipment constraints, and dislikes as the original plan — do not reintroduce disliked exercises or equipment the client doesn't have.
 - EQUIPMENT RULE — CRITICAL: only assign exercises matching the equipment already established for this client.
 - VOLUME GUIDELINES: Beginner 10-15 sets/muscle/week, Intermediate 12-18, Advanced 16-22. Progressive overload should never push volume outside these ranges in one jump — increase by 1-2 sets max per adjustment.
+- EFFORT TARGETS: keep every strength/hypertrophy working set's "effort" field (an RIR range or "Train to failure") consistent with the original plan's fitness level and phase — conservative RIR (2-3) for beginners, with a plain-language explanation the first time RIR appears in a beginner's plan; tighter RIR (1-2) with occasional true-failure sets for intermediate/advanced, especially in the Peak phase. Leave "effort" as "" for cardio/conditioning, warm-ups, cooldowns, and technique-priority moves. Never target failure, and keep RIR conservative, for any exercise affected by the client's injuries/limitations. This governs how hard a set is pushed, not set count — don't let it affect the volume ranges above.
 - SESSION BALANCE — CRITICAL: never let more than 2 exercises in a single session target the same primary muscle group, unless the original plan was an explicit specialization day. This matters most for low-frequency plans (2-3 days/week).
 - CORE/ABS — CRITICAL: keep core/abs volume concentrated into 2-4 training days with 1-2 exercises each (roughly 8-15 sets/week total) — do not spread it into a single token exercise on every day, which under-trains the muscle per session.
 - Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).`;
@@ -1066,11 +1078,11 @@ export default function FitnessPlanGenerator() {
                   <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min band pull-aparts, arm circles, and light incline push-ups</p>
                 </div>
                 {[
-                  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
-                  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
-                  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", note: "Light weight, full control — this is what actually builds shoulder width." },
-                  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", note: "Replaces the skull crusher you said caused elbow pain." },
-                  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
+                  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
+                  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
+                  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control — this is what actually builds shoulder width." },
+                  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", effort: "Train to failure", note: "Replaces the skull crusher you said caused elbow pain." },
+                  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
                 ].map((ex, i) => (
                   <div key={i} className="exercise-card" style={{ marginBottom: "0.5rem" }}>
                     <div className="exercise-row" style={{ gridTemplateColumns: "1fr auto", padding: "0.7rem 0.85rem" }}>
@@ -1081,6 +1093,7 @@ export default function FitnessPlanGenerator() {
                       <div className="exercise-stats">
                         <div className="exercise-sets" style={{ fontSize: "0.8rem" }}>{ex.sets}×{ex.reps}</div>
                         <div className="exercise-rest">{ex.rest} rest</div>
+                        {ex.effort && <div className="exercise-effort">{ex.effort}</div>}
                       </div>
                     </div>
                   </div>
@@ -1397,6 +1410,7 @@ export default function FitnessPlanGenerator() {
                               <div className="exercise-stats">
                                 <div className="exercise-sets">{ex.sets}×{ex.reps}</div>
                                 <div className="exercise-rest">{ex.rest} rest</div>
+                                {ex.effort && <div className="exercise-effort">{ex.effort}</div>}
                               </div>
                             </div>
                           </div>

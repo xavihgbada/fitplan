@@ -845,6 +845,10 @@
   font-size: 0.72rem;
   color: var(--faint);
 }
+.exercise-effort {
+  font-size: 0.72rem;
+  color: var(--faint);
+}
 
 .phase-row {
   display: flex;
