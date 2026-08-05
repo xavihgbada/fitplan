@@ -427,6 +427,60 @@ General notes for the week (may be empty): ${latest.notes || "None"}
 Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
 };
 
+// Add new terms here — { pattern: RegExp (global, case-insensitive), definition: one sentence }.
+const GLOSSARY_TERMS = [
+  { id: "rir", pattern: /\bRIR\b/gi, definition: "Reps in reserve — how many more reps you could still do before hitting failure." },
+  { id: "progressive-overload", pattern: /\bprogressive overload\b/gi, definition: "Gradually increasing weight, reps, or sets over time so your muscles keep adapting." },
+  { id: "failure", pattern: /\btrain(?:ing)? to failure\b/gi, definition: "Doing reps until you physically can't complete another one with good form." },
+  { id: "drop-set", pattern: /\bdrop sets?\b/gi, definition: "Cutting the weight and continuing reps immediately after reaching failure, with no rest." },
+  { id: "superset", pattern: /\bsupersets?\b/gi, definition: "Two exercises performed back-to-back with no rest in between." },
+];
+const GLOSSARY_REGEX = new RegExp(GLOSSARY_TERMS.map(t => t.pattern.source).join("|"), "gi");
+const findGlossaryTerm = (matchText) =>
+  GLOSSARY_TERMS.find(t => new RegExp(`^(?:${t.pattern.source})$`, "i").test(matchText));
+
+const GlossaryTerm = ({ term, definition }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("touchstart", close); };
+  }, [open]);
+  return (
+    <span className={`glossary-term${open ? " is-open" : ""}`} ref={ref}>
+      <span
+        className="glossary-term-label"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
+      >
+        {term}
+      </span>
+      <span className="glossary-tooltip" role="tooltip">{definition}</span>
+    </span>
+  );
+};
+
+// Wraps recognized glossary terms in a string with GlossaryTerm spans; returns plain text untouched otherwise.
+const renderWithGlossary = (text) => {
+  if (!text) return text;
+  const parts = [];
+  let lastIndex = 0;
+  const regex = new RegExp(GLOSSARY_REGEX);
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    const entry = findGlossaryTerm(match[0]);
+    parts.push(<GlossaryTerm key={match.index} term={match[0]} definition={entry.definition} />);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+};
+
 const TAG_COLORS = {
   "Strength": { bg: "#EFF6FF", color: "#1D4ED8" },
   "Cardio": { bg: "#FFF7ED", color: "#C2410C" },
@@ -1362,7 +1416,7 @@ export default function FitnessPlanGenerator() {
                       <div className="phase-index">{i + 1}</div>
                       <div>
                         <div className="phase-title">{p.phase}</div>
-                        <div className="phase-focus">{p.focus}</div>
+                        <div className="phase-focus">{renderWithGlossary(p.focus)}</div>
                       </div>
                     </div>
                   ))}
@@ -1406,12 +1460,12 @@ export default function FitnessPlanGenerator() {
                                   {ex.name}
                                   <span onClick={() => openYoutube(ex.name)} className="exercise-how-to">▶ how to</span>
                                 </div>
-                                {ex.note && <div className="exercise-note">{ex.note}</div>}
+                                {ex.note && <div className="exercise-note">{renderWithGlossary(ex.note)}</div>}
                               </div>
                               <div className="exercise-stats">
                                 <div className="exercise-sets">{ex.sets}×{ex.reps}</div>
                                 <div className="exercise-rest">{ex.rest} rest</div>
-                                {ex.effort && <div className="exercise-effort">{ex.effort}</div>}
+                                {ex.effort && <div className="exercise-effort">{renderWithGlossary(ex.effort)}</div>}
                               </div>
                             </div>
                           </div>

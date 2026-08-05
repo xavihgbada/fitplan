@@ -850,6 +850,43 @@
   color: var(--faint);
 }
 
+.glossary-term {
+  position: relative;
+  display: inline-block;
+}
+.glossary-term-label {
+  border-bottom: 1px dotted var(--faint);
+  cursor: help;
+}
+.glossary-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  font-weight: 400;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  width: max-content;
+  max-width: 220px;
+  white-space: normal;
+  text-align: left;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  z-index: 20;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.glossary-term:hover .glossary-tooltip,
+.glossary-term.is-open .glossary-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
 .phase-row {
   display: flex;
   gap: 0.75rem;
