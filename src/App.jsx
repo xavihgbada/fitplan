@@ -996,6 +996,7 @@ export default function FitnessPlanGenerator() {
         localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
       } else {
         localStorage.setItem(`fitplan_pending_plan_${session.user.id}`, JSON.stringify({ plan: parsed, createdAt: Date.now() }));
+        loadProfile();
       }
     } catch (e) {
       setError("Something went wrong generating the plan. Please try again.");
