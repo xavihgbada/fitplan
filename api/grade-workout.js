@@ -1,5 +1,5 @@
 import { getVerifiedUser } from "./_lib/supabaseAuth.js";
-import { getAccessState, markFreeActionUsed } from "./_lib/accessGate.js";
+import { getAccessState, markFreeActionUsed, incrementPlansGenerated } from "./_lib/accessGate.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -10,6 +10,9 @@ export default async function handler(req, res) {
   const access = await getAccessState(user.id);
   if (!access.hasPaid && access.freeActionUsed) {
     return res.status(402).json({ error: "You've used your free action — unlock to keep going." });
+  }
+  if (access.hasPaid && access.plansGenerated >= access.totalAllowed) {
+    return res.status(402).json({ error: "You've used your included generations — buy another to keep going." });
   }
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -23,8 +26,9 @@ export default async function handler(req, res) {
   });
   const data = await response.json();
 
-  if (!access.hasPaid && response.ok) {
-    await markFreeActionUsed(user.id, "plan");
+  if (response.ok) {
+    if (access.hasPaid) await incrementPlansGenerated(user.id);
+    else await markFreeActionUsed(user.id, "grade");
   }
 
   res.status(200).json(data);

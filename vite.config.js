@@ -64,7 +64,29 @@ const mockGeneratePlan = () => ({
   },
 })
 
+// Dev-only stub for /api/grade-workout, same rationale as mockGeneratePlan above —
+// exercises the "Grade my routine" UI locally without Anthropic/Vercel functions.
+const mockGradeWorkout = () => ({
+  name: 'mock-grade-workout-api',
+  configureServer(server) {
+    server.middlewares.use('/api/grade-workout', (req, res, next) => {
+      if (req.method !== 'POST') return next()
+      const mockGrade = {
+        summary: 'Mock grade result from a local Vite dev stub, not the real API — use it to check UI/layout without an Anthropic API key or Vercel functions.',
+        fixes: [
+          { issue: 'Barbell Upright Row is labeled as a medial delt move but it primarily trains rear delts and traps.', fix: 'Swap in a Cable Lateral Raise if medial delt width is the goal.', exercise: 'Barbell Upright Row' },
+          { issue: 'Chest is trained on 4 of the 5 days, well past the advanced 16-22 sets/week range, while legs get one short session.', fix: 'Cut chest volume roughly in half and add a second lower-body day.', exercise: null },
+          { issue: 'Cable Crossover is programmed but no cable machine was listed as available equipment.', fix: 'Replace with a Dumbbell Fly, which uses equipment already on hand.', exercise: 'Cable Crossover' },
+          { issue: 'No rep ranges or plan to add weight/reps over time anywhere in the routine.', fix: 'Add a target rep range per exercise and a rule for when to increase load.', exercise: null },
+        ],
+      }
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify(mockGrade) }] }))
+    })
+  },
+})
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), mockGeneratePlan()],
+  plugins: [react(), mockGeneratePlan(), mockGradeWorkout()],
 })

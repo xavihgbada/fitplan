@@ -427,6 +427,61 @@ General notes for the week (may be empty): ${latest.notes || "None"}
 Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
 };
 
+const GRADE_SYSTEM_PROMPT = `You are an expert fitness coach reviewing a client's existing workout routine for quality issues. Return ONLY a valid JSON object, no markdown, no explanation, no preamble. The JSON must exactly match this structure:
+
+{
+  "summary": "1-2 sentence overall assessment of the routine's biggest strength or weakness",
+  "fixes": [
+    { "issue": "What's wrong, one sentence", "fix": "The specific actionable correction, one sentence", "exercise": "Exercise name this applies to, or null if it's a general/structural issue" }
+  ]
+}
+
+Return 3-5 fixes, ordered from most to least impactful. Be specific and terse — one sentence per field, matching the direct style of a coach's note, not a paragraph. Never praise generically — every fix must point at something concrete in the routine as described.
+
+VOLUME GUIDELINES — flag if weekly sets per muscle group fall outside these ranges for the client's stated fitness level:
+- Beginner: 10-15 sets per muscle group per week
+- Intermediate: 12-18 sets per muscle group per week
+- Advanced: 16-22 sets per muscle group per week
+
+MUSCLE GROUP ACCURACY — flag any exercise mislabeled or misunderstood relative to what it actually trains:
+- Medial (lateral) delt exercises: lateral raises, cable lateral raises, machine lateral raises
+- Rear delt exercises: face pulls, reverse flies, bent-over lateral raises, barbell upright rows
+- Barbell upright rows target the rear delts and upper traps — never medial delt
+- Front delt exercises: overhead press, front raises, incline dumbbell press
+
+EQUIPMENT CONSISTENCY — flag any exercise in the routine that requires equipment the client doesn't have access to, given what's listed below.
+
+SESSION / WEEKLY BALANCE — flag imbalanced sessions (e.g. one muscle group hit far harder than others in a single day) or an imbalanced week (e.g. push trained twice, pull never trained).
+
+PROGRESSION — note if the routine has no visible way to progress over time (no rep ranges, no plan to add weight/reps, no deload or phase structure); this alone can be one of the fixes if nothing else is wrong.
+
+GOAL ALIGNMENT — flag exercise selection or rep/set ranges that don't actually serve the client's stated goal:
+- Strength goal paired with only high-rep (15+) work and no heavier, lower-rep sets.
+- Fat-loss or conditioning goal with no cardio, circuits, or metabolic work anywhere in the routine.
+- Hypertrophy goal with rep ranges far outside typical growth-focused work (e.g. all singles/doubles, or everything past 20 reps).
+
+INJURY SAFETY — flag any exercise that loads or stresses the client's stated injury or limitation, mirroring how plan generation adapts everything to injuries and limitations:
+- Name the specific exercise and the mechanism of concern (e.g. "back squat loads a flagged lower-back issue through spinal compression").
+- Suggest a genuinely different movement pattern that avoids that stress, not just a lighter version of the same lift.
+
+If the routine is described too vaguely to grade a specific rule, say so plainly in the summary rather than inventing detail that wasn't given.`;
+
+const buildGradePrompt = (data, routineText) => `Review this client's current workout routine and identify what's wrong with it.
+
+Fitness level: ${data.level}
+Goal: ${data.goal || "Not specified"}
+Injuries or physical limitations: ${data.injuries || "None"}
+Available equipment (ONLY count exercises usable with these as consistent): ${
+  data.equipmentLocation === "full_gym" ? "Full commercial gym — all standard equipment available" :
+  data.equipmentLocation === "bodyweight" ? "Bodyweight only — no equipment" :
+  data.equipment.length > 0 ? data.equipment.join(", ") : "Bodyweight only"
+}
+
+Their current routine, as described:
+${routineText}
+
+Return only the JSON object.`;
+
 // Add new terms here — { pattern: RegExp (global, case-insensitive), definition: one sentence }.
 const GLOSSARY_TERMS = [
   { id: "rir", pattern: /\bRIR\b/gi, definition: "Reps in reserve — how many more reps you could still do before hitting failure." },
@@ -679,6 +734,11 @@ export default function FitnessPlanGenerator() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mode, setMode] = useState("generate"); // "generate" | "grade"
+  const [routineText, setRoutineText] = useState("");
+  const [grading, setGrading] = useState(false);
+  const [gradeResult, setGradeResult] = useState(null);
+  const [gradeError, setGradeError] = useState("");
   const [activeWorkout, setActiveWorkout] = useState(0);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [expandedSections, setExpandedSections] = useState({ nutrition: false, motivation: false, checkin: false });
@@ -898,6 +958,7 @@ export default function FitnessPlanGenerator() {
 
   const totalAllowedGenerations = 3 + (profile?.generation_credits || 0);
   const atGenerationLimit = profile?.has_paid && (profile?.plans_generated || 0) >= totalAllowedGenerations;
+  const freeActionBlocked = !profile?.has_paid && !!profile?.free_action_used;
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -909,6 +970,7 @@ export default function FitnessPlanGenerator() {
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) { setError(""); return; }
     if (atGenerationLimit) { setError("You've used your included generations."); return; }
+    if (freeActionBlocked) { setError(`You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"} — unlock to keep going.`); return; }
     setError(""); setLoading(true); setPlan(null);
     try {
       const res = await fetch("/api/generate-plan", {
@@ -916,6 +978,12 @@ export default function FitnessPlanGenerator() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 8000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: buildPrompt(form) }] }),
       });
+      if (res.status === 402) {
+        const errBody = await res.json().catch(() => ({}));
+        setError(errBody.error || "You've used your free action — unlock to keep going.");
+        loadProfile();
+        return;
+      }
       const data = await res.json();
       const text = data.content?.map(b => b.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
@@ -937,11 +1005,43 @@ export default function FitnessPlanGenerator() {
         localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
       } else {
         localStorage.setItem(`fitplan_pending_plan_${session.user.id}`, JSON.stringify({ plan: parsed, createdAt: Date.now() }));
+        loadProfile();
       }
     } catch (e) {
       setError("Something went wrong generating the plan. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const gradeWorkout = async () => {
+    if (!routineText.trim()) { setGradeError("Paste or describe your current routine first."); return; }
+    if (!form.equipmentLocation) { setFieldErrors({ equipmentLocation: "Select where you train." }); return; }
+    if (atGenerationLimit) { setGradeError("You've used your included generations."); return; }
+    if (freeActionBlocked) { setGradeError(`You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock to keep going.`); return; }
+    setGradeError(""); setGrading(true); setGradeResult(null);
+    try {
+      const res = await fetch("/api/grade-workout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, system: GRADE_SYSTEM_PROMPT, messages: [{ role: "user", content: buildGradePrompt(form, routineText) }] }),
+      });
+      if (res.status === 402) {
+        const errBody = await res.json().catch(() => ({}));
+        setGradeError(errBody.error || "You've used your free action — unlock to keep going.");
+        loadProfile();
+        return;
+      }
+      const data = await res.json();
+      const text = data.content?.map(b => b.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setGradeResult(parsed);
+      loadProfile();
+    } catch (e) {
+      setGradeError("Something went wrong grading your routine. Please try again.");
+    } finally {
+      setGrading(false);
     }
   };
 
@@ -1363,12 +1463,21 @@ export default function FitnessPlanGenerator() {
       )}
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "1.75rem 1.25rem 3rem" }}>
-        {!plan && !loading && (
+        {!plan && !gradeResult && !loading && !grading && (
           <>
             <div style={{ marginBottom: "1.75rem" }}>
               <h1 className="form-title">Your plan. Your life.</h1>
               <p className="form-sub">The more specific you are, the more personal your plan will be.</p>
             </div>
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
+              <button type="button" onClick={() => setMode("generate")} className={`btn ${mode === "generate" ? "btn-solid" : "btn-ghost"}`}>
+                Generate a plan
+              </button>
+              <button type="button" onClick={() => setMode("grade")} className={`btn ${mode === "grade" ? "btn-solid" : "btn-ghost"}`}>
+                Grade my routine
+              </button>
+            </div>
+            {mode === "generate" ? (
             <div className="form-card">
               <Divider label="Your Goal" />
               <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" error={fieldErrors.goal} suggestions={["Build muscle", "Lose fat", "Build muscle while losing fat", "Get stronger", "Improve general fitness and health", "Improve endurance / cardio", "Train for a sport or event"]} />
@@ -1401,12 +1510,45 @@ export default function FitnessPlanGenerator() {
                 <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
                   {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans — buy another for €7`}
                 </button>
+              ) : freeActionBlocked ? (
+                <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
+                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"} — unlock for €19`}
+                </button>
               ) : (
                 <button onClick={generate} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
                   Generate My 8-Week Plan →
                 </button>
               )}
             </div>
+            ) : (
+            <div className="form-card">
+              <Divider label="Your Current Routine" />
+              <Field label="Describe or paste your current routine" name="routineText" value={routineText} onChange={e => setRoutineText(e.target.value)} placeholder={"e.g. Monday: Bench press 3x10, Lat pulldown 3x12...\nWednesday: Squat 3x8, Leg curl 3x12..."} as="textarea" hint="List your days, exercises, sets and reps as best you can — rough is fine." />
+
+              <Divider label="Your Profile" />
+              <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" suggestions={["Build muscle", "Lose fat", "Build muscle while losing fat", "Get stronger", "Improve general fitness and health", "Improve endurance / cardio", "Train for a sport or event"]} />
+              <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
+              <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues — or 'none'" />
+
+              <Divider label="Your Equipment" />
+              <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} error={fieldErrors.equipmentLocation} />
+
+              {gradeError && <p className="form-error">{gradeError}</p>}
+              {atGenerationLimit ? (
+                <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
+                  {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans — buy another for €7`}
+                </button>
+              ) : freeActionBlocked ? (
+                <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
+                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock for €19`}
+                </button>
+              ) : (
+                <button onClick={gradeWorkout} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
+                  Grade My Routine →
+                </button>
+              )}
+            </div>
+            )}
             <p className="form-legal" style={{ marginTop: "1rem" }}>
               <span onClick={() => setPage("terms")}>Terms of Service</span>
               {" · "}
@@ -1415,10 +1557,10 @@ export default function FitnessPlanGenerator() {
           </>
         )}
 
-        {loading && (
+        {(loading || grading) && (
           <div style={{ textAlign: "center", padding: "5rem 0" }}>
             <div className="auth-spinner" style={{ width: 44, height: 44, margin: "0 auto 1rem" }} />
-            <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>Building your personalized plan...</p>
+            <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{loading ? "Building your personalized plan..." : "Grading your routine..."}</p>
           </div>
         )}
 
@@ -1566,6 +1708,35 @@ export default function FitnessPlanGenerator() {
               {" · "}
               <span onClick={() => setPage("privacy")} style={{ color: "var(--accent-deep)", cursor: "pointer", textDecoration: "underline" }}>Privacy Policy</span>
             </p>
+          </div>
+        )}
+
+        {gradeResult && (
+          <div>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h2 className="results-title">Routine Review</h2>
+              <p className="results-summary">{renderWithGlossary(gradeResult.summary)}</p>
+            </div>
+            <div className="section-card" style={{ padding: "1.25rem" }}>
+              <h3 className="section-title">What to Fix</h3>
+              <div className="exercise-list">
+                {gradeResult.fixes?.map((f, i) => (
+                  <div key={i} className="exercise-card">
+                    <div className="exercise-row" style={{ gridTemplateColumns: "1.6rem 1fr" }}>
+                      <div className="exercise-index">{i + 1}</div>
+                      <div>
+                        <div className="exercise-name">{f.exercise || "General"}</div>
+                        <div className="exercise-note">{renderWithGlossary(f.issue)}</div>
+                        <div className="exercise-note" style={{ color: "var(--accent-deep)", fontWeight: 600, marginTop: "0.3rem" }}>→ {renderWithGlossary(f.fix)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => { setGradeResult(null); setRoutineText(""); }} className="btn btn-ghost" style={{ marginTop: "1rem" }}>
+              ← Grade another routine
+            </button>
           </div>
         )}
       </div>
