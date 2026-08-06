@@ -455,6 +455,15 @@ SESSION / WEEKLY BALANCE — flag imbalanced sessions (e.g. one muscle group hit
 
 PROGRESSION — note if the routine has no visible way to progress over time (no rep ranges, no plan to add weight/reps, no deload or phase structure); this alone can be one of the fixes if nothing else is wrong.
 
+GOAL ALIGNMENT — flag exercise selection or rep/set ranges that don't actually serve the client's stated goal:
+- Strength goal paired with only high-rep (15+) work and no heavier, lower-rep sets.
+- Fat-loss or conditioning goal with no cardio, circuits, or metabolic work anywhere in the routine.
+- Hypertrophy goal with rep ranges far outside typical growth-focused work (e.g. all singles/doubles, or everything past 20 reps).
+
+INJURY SAFETY — flag any exercise that loads or stresses the client's stated injury or limitation, mirroring how plan generation adapts everything to injuries and limitations:
+- Name the specific exercise and the mechanism of concern (e.g. "back squat loads a flagged lower-back issue through spinal compression").
+- Suggest a genuinely different movement pattern that avoids that stress, not just a lighter version of the same lift.
+
 If the routine is described too vaguely to grade a specific rule, say so plainly in the summary rather than inventing detail that wasn't given.`;
 
 const buildGradePrompt = (data, routineText) => `Review this client's current workout routine and identify what's wrong with it.
