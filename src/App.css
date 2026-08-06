@@ -242,8 +242,8 @@
 }
 
 .btn-cool-solid {
-  background: var(--cool-text);
-  border-color: var(--cool-text);
+  background: var(--warm-text);
+  border-color: var(--warm-text);
   color: #fff;
 }
 .btn-cool-solid:hover {
