@@ -498,7 +498,7 @@ const getGradeScoreTone = (score) => (score >= 70 ? "accent" : score >= 45 ? "wa
 // no new fields are requested from or added to the model's response.
 const GRADE_FIX_CATEGORIES = [
   { id: "injury", label: "Injury Safety", tone: "danger", pattern: /\binjur|\bpain\b|contraindicat|\bspine\b|spinal|\bdisc\b|joint stress|aggravat/i },
-  { id: "equipment", label: "Equipment", tone: "cool", pattern: /equipment|doesn'?t have|not available|isn'?t available|no .*(machine|cable|bench|rack)/i },
+  { id: "equipment", label: "Equipment", tone: "cool", pattern: /\bequipment\b|\bdoesn'?t have\b|\bdo(?:es)? not have\b|\bnot available\b|\bisn'?t available\b|\bno .{0,15}(machine|cable|bench|rack)\b/i },
   { id: "goal", label: "Goal Alignment", tone: "warm", pattern: /\b(your|their|the client'?s|the stated)\s+goal\b|\bgoal\s+(?:of|is|was|requires|means)\b/i },
   { id: "volume", label: "Volume & Progression", tone: "warm", pattern: /sets per week|\bvolume\b|progression|rep range|deload|overload|no plan to (add|increase)/i },
 ];
