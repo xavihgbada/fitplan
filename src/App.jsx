@@ -482,6 +482,38 @@ ${routineText}
 
 Return only the JSON object.`;
 
+// Presentation-only: approximates a 0-100 score from the count and order of returned fixes
+// (earlier fixes are weighted higher, since the prompt asks for them ordered by impact).
+// Doesn't touch the grading analysis itself — no prompt or API changes.
+const GRADE_SCORE_DEDUCTIONS = [22, 16, 12, 9, 7];
+const computeGradeScore = (fixes) => {
+  if (!fixes || fixes.length === 0) return 95;
+  const deduction = fixes.reduce((sum, _, i) => sum + (GRADE_SCORE_DEDUCTIONS[i] ?? 5), 0);
+  return Math.max(20, Math.min(95, 100 - deduction));
+};
+const getGradeScoreTone = (score) => (score >= 70 ? "accent" : score >= 45 ? "warm" : "danger");
+
+// Presentation-only: classifies each fix by keyword-matching its own issue/fix text against
+// the rule categories already defined in GRADE_SYSTEM_PROMPT above, purely for card styling —
+// no new fields are requested from or added to the model's response.
+const GRADE_FIX_CATEGORIES = [
+  { id: "injury", label: "Injury Safety", tone: "danger", pattern: /\binjur|\bpain\b|contraindicat|\bspine\b|spinal|\bdisc\b|joint stress|aggravat/i },
+  { id: "equipment", label: "Equipment", tone: "cool", pattern: /equipment|doesn'?t have|not available|isn'?t available|no .*(machine|cable|bench|rack)/i },
+  { id: "goal", label: "Goal Alignment", tone: "warm", pattern: /\b(your|their|the client'?s|the stated)\s+goal\b|\bgoal\s+(?:of|is|was|requires|means)\b/i },
+  { id: "volume", label: "Volume & Progression", tone: "warm", pattern: /sets per week|\bvolume\b|progression|rep range|deload|overload|no plan to (add|increase)/i },
+];
+const GRADE_TONE_STYLES = {
+  danger: { bg: "var(--danger-bg)", border: "var(--danger-border)", text: "var(--danger)" },
+  cool: { bg: "var(--cool-bg)", border: "var(--cool-border)", text: "var(--cool-text)" },
+  warm: { bg: "var(--warm-bg)", border: "var(--warm-border)", text: "var(--warm-text)" },
+  accent: { bg: "var(--accent-bg)", border: "var(--accent-border)", text: "var(--accent-deep)" },
+};
+const classifyGradeFix = (fix) => {
+  const text = `${fix.issue || ""} ${fix.fix || ""}`;
+  const match = GRADE_FIX_CATEGORIES.find(c => c.pattern.test(text));
+  return match || { id: "general", label: "Balance & Technique", tone: "accent" };
+};
+
 // Add new terms here — { pattern: RegExp (global, case-insensitive), definition: one sentence }.
 const GLOSSARY_TERMS = [
   { id: "rir", pattern: /\bRIR\b/gi, definition: "Reps in reserve — how many more reps you could still do before hitting failure." },
@@ -1711,34 +1743,51 @@ export default function FitnessPlanGenerator() {
           </div>
         )}
 
-        {gradeResult && (
+        {gradeResult && (() => {
+          const gradeScore = computeGradeScore(gradeResult.fixes);
+          const scoreTone = GRADE_TONE_STYLES[getGradeScoreTone(gradeScore)];
+          return (
           <div>
             <div style={{ marginBottom: "1.5rem" }}>
               <h2 className="results-title">Routine Review</h2>
               <p className="results-summary">{renderWithGlossary(gradeResult.summary)}</p>
             </div>
+            <div className="grade-score-card">
+              <div className="grade-score-label">Routine Score</div>
+              <div className="grade-score-value" style={{ color: scoreTone.text }}>
+                {gradeScore}<span className="grade-score-max">/100</span>
+              </div>
+            </div>
             <div className="section-card" style={{ padding: "1.25rem" }}>
               <h3 className="section-title">What to Fix</h3>
               <div className="exercise-list">
-                {gradeResult.fixes?.map((f, i) => (
-                  <div key={i} className="exercise-card">
-                    <div className="exercise-row" style={{ gridTemplateColumns: "1.6rem 1fr" }}>
-                      <div className="exercise-index">{i + 1}</div>
-                      <div>
-                        <div className="exercise-name">{f.exercise || "General"}</div>
-                        <div className="exercise-note">{renderWithGlossary(f.issue)}</div>
-                        <div className="exercise-note" style={{ color: "var(--accent-deep)", fontWeight: 600, marginTop: "0.3rem" }}>→ {renderWithGlossary(f.fix)}</div>
+                {gradeResult.fixes?.map((f, i) => {
+                  const category = classifyGradeFix(f);
+                  const tone = GRADE_TONE_STYLES[category.tone];
+                  return (
+                    <div key={i} className="exercise-card" style={{ borderColor: tone.border }}>
+                      <div className="exercise-row" style={{ gridTemplateColumns: "1.6rem 1fr" }}>
+                        <div className="exercise-index" style={{ background: tone.bg, color: tone.text }}>{i + 1}</div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <div className="exercise-name">{f.exercise || "General"}</div>
+                            <span className="type-tag" style={{ background: tone.bg, color: tone.text }}>{category.label}</span>
+                          </div>
+                          <div className="exercise-note">{renderWithGlossary(f.issue)}</div>
+                          <div className="exercise-note" style={{ color: "var(--accent-deep)", fontWeight: 600, marginTop: "0.3rem" }}>→ {renderWithGlossary(f.fix)}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             <button onClick={() => { setGradeResult(null); setRoutineText(""); }} className="btn btn-ghost" style={{ marginTop: "1rem" }}>
               ← Grade another routine
             </button>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {showCheckIn && plan && (

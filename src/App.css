@@ -673,6 +673,36 @@
   font-family: var(--sans);
 }
 
+.grade-score-card {
+  padding: 1.1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+.grade-score-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.35rem;
+}
+.grade-score-value {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 2.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.grade-score-max {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--faint);
+  margin-left: 0.15rem;
+}
+
 /* tabs */
 .tab-row {
   border-bottom: 1px solid var(--line);
