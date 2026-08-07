@@ -809,6 +809,11 @@ export default function FitnessPlanGenerator() {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      // Clear the previous account's profile immediately on sign-out, rather than leaving it
+      // to be silently overwritten once the next account's loadProfile() resolves — effects
+      // keyed off profile?.has_paid (like the pending-plan migration below) would otherwise
+      // briefly see the PREVIOUS account's has_paid value for the NEW session.
+      if (!session) setProfile(null);
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
     });
     return () => subscription.unsubscribe();
@@ -883,10 +888,13 @@ export default function FitnessPlanGenerator() {
         } else {
           setError("Your plan draft expired after 24 hours and couldn't be recovered — please generate a new one.");
         }
-      } catch (e) {
-        // nothing valid to migrate — user will just see the generator screen
-      } finally {
+        // Only clear the draft once it's been migrated or confirmed expired — never on
+        // failure below, so a transient error (or this effect firing against stale profile
+        // data) can't silently destroy the user's only copy of an unpaid plan.
         localStorage.removeItem(key);
+      } catch (e) {
+        // Migration failed (bad JSON, network error, etc.) — leave the draft in place so
+        // it can be retried on the next load instead of being lost.
       }
     })();
   }, [session, profile?.has_paid]);
