@@ -431,12 +431,17 @@ const GRADE_SYSTEM_PROMPT = `You are an expert fitness coach reviewing a client'
 
 {
   "summary": "1-2 sentence overall assessment of the routine's biggest strength or weakness",
+  "strengths": [
+    { "strength": "What's genuinely done well, one sentence", "exercise": "Exercise name this applies to, or null if it's a general/structural strength" }
+  ],
   "fixes": [
-    { "issue": "What's wrong, one sentence", "fix": "The specific actionable correction, one sentence", "exercise": "Exercise name this applies to, or null if it's a general/structural issue" }
+    { "issue": "What's wrong, one sentence", "fix": "The specific actionable correction, one sentence", "exercise": "Exercise name this applies to, or null if it's a general/structural issue", "severity": "critical, moderate, or minor" }
   ]
 }
 
-Return 3-5 fixes, ordered from most to least impactful. Be specific and terse — one sentence per field, matching the direct style of a coach's note, not a paragraph. Never praise generically — every fix must point at something concrete in the routine as described.
+Return 0-5 fixes, ordered from most to least impactful — only flag genuine issues. A well-built routine with no significant problems should return fewer fixes, even zero, rather than padding to reach a minimum. Assign each fix a severity: "critical" (safety risk, or completely undermines the stated goal), "moderate" (meaningfully suboptimal but not dangerous), or "minor" (small polish/optimization, not worth much weight). Be specific and terse — one sentence per field, matching the direct style of a coach's note, not a paragraph. Never praise generically — every fix must point at something concrete in the routine as described.
+
+STRENGTHS — return 0-3 strengths, only for elements that are genuinely well-executed given the client's stated goal, level, injuries, and equipment (e.g. an appropriate progression scheme, balanced muscle coverage, rep ranges that match the goal, smart equipment substitutions, correct injury accommodation). Do not invent praise to fill the list — if nothing stands out, return an empty array. Be as specific and concrete as the fixes.
 
 VOLUME GUIDELINES — flag if weekly sets per muscle group fall outside these ranges for the client's stated fitness level:
 - Beginner: 10-15 sets per muscle group per week
@@ -482,14 +487,14 @@ ${routineText}
 
 Return only the JSON object.`;
 
-// Presentation-only: approximates a 0-100 score from the count and order of returned fixes
-// (earlier fixes are weighted higher, since the prompt asks for them ordered by impact).
-// Doesn't touch the grading analysis itself — no prompt or API changes.
-const GRADE_SCORE_DEDUCTIONS = [22, 16, 12, 9, 7];
-const computeGradeScore = (fixes) => {
-  if (!fixes || fixes.length === 0) return 95;
-  const deduction = fixes.reduce((sum, _, i) => sum + (GRADE_SCORE_DEDUCTIONS[i] ?? 5), 0);
-  return Math.max(20, Math.min(95, 100 - deduction));
+// Derives a 0-100 score from each fix's own severity (as assigned by the model) plus a small
+// bonus for genuine strengths — not from fix count or position, so two routines with the same
+// number of fixes but different severities score differently.
+const GRADE_SEVERITY_DEDUCTIONS = { critical: 20, moderate: 10, minor: 4 };
+const computeGradeScore = (fixes, strengths) => {
+  const deduction = (fixes || []).reduce((sum, f) => sum + (GRADE_SEVERITY_DEDUCTIONS[f.severity] ?? 10), 0);
+  const bonus = Math.min((strengths || []).length * 3, 9);
+  return Math.max(5, Math.min(98, 100 - deduction + bonus));
 };
 const getGradeScoreTone = (score) => (score >= 70 ? "accent" : score >= 45 ? "warm" : "danger");
 
@@ -1744,8 +1749,9 @@ export default function FitnessPlanGenerator() {
         )}
 
         {gradeResult && (() => {
-          const gradeScore = computeGradeScore(gradeResult.fixes);
+          const gradeScore = computeGradeScore(gradeResult.fixes, gradeResult.strengths);
           const scoreTone = GRADE_TONE_STYLES[getGradeScoreTone(gradeScore)];
+          const goodTone = GRADE_TONE_STYLES.accent;
           return (
           <div>
             <div style={{ marginBottom: "1.5rem" }}>
@@ -1758,30 +1764,50 @@ export default function FitnessPlanGenerator() {
                 {gradeScore}<span className="grade-score-max">/100</span>
               </div>
             </div>
-            <div className="section-card" style={{ padding: "1.25rem" }}>
-              <h3 className="section-title">What to Fix</h3>
-              <div className="exercise-list">
-                {gradeResult.fixes?.map((f, i) => {
-                  const category = classifyGradeFix(f);
-                  const tone = GRADE_TONE_STYLES[category.tone];
-                  return (
-                    <div key={i} className="exercise-card" style={{ borderColor: tone.border }}>
+            {gradeResult.strengths?.length > 0 && (
+              <div className="section-card" style={{ padding: "1.25rem" }}>
+                <h3 className="section-title">What's Working</h3>
+                <div className="exercise-list">
+                  {gradeResult.strengths.map((s, i) => (
+                    <div key={i} className="exercise-card" style={{ borderColor: goodTone.border }}>
                       <div className="exercise-row" style={{ gridTemplateColumns: "1.6rem 1fr" }}>
-                        <div className="exercise-index" style={{ background: tone.bg, color: tone.text }}>{i + 1}</div>
+                        <div className="exercise-index" style={{ background: goodTone.bg, color: goodTone.text }}>✓</div>
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                            <div className="exercise-name">{f.exercise || "General"}</div>
-                            <span className="type-tag" style={{ background: tone.bg, color: tone.text }}>{category.label}</span>
-                          </div>
-                          <div className="exercise-note">{renderWithGlossary(f.issue)}</div>
-                          <div className="exercise-note" style={{ color: "var(--accent-deep)", fontWeight: 600, marginTop: "0.3rem" }}>→ {renderWithGlossary(f.fix)}</div>
+                          <div className="exercise-name">{s.exercise || "General"}</div>
+                          <div className="exercise-note">{renderWithGlossary(s.strength)}</div>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            {gradeResult.fixes?.length > 0 && (
+              <div className="section-card" style={{ padding: "1.25rem" }}>
+                <h3 className="section-title">What to Fix</h3>
+                <div className="exercise-list">
+                  {gradeResult.fixes.map((f, i) => {
+                    const category = classifyGradeFix(f);
+                    const tone = GRADE_TONE_STYLES[category.tone];
+                    return (
+                      <div key={i} className="exercise-card" style={{ borderColor: tone.border }}>
+                        <div className="exercise-row" style={{ gridTemplateColumns: "1.6rem 1fr" }}>
+                          <div className="exercise-index" style={{ background: tone.bg, color: tone.text }}>{i + 1}</div>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                              <div className="exercise-name">{f.exercise || "General"}</div>
+                              <span className="type-tag" style={{ background: tone.bg, color: tone.text }}>{category.label}</span>
+                            </div>
+                            <div className="exercise-note">{renderWithGlossary(f.issue)}</div>
+                            <div className="exercise-note" style={{ color: "var(--accent-deep)", fontWeight: 600, marginTop: "0.3rem" }}>→ {renderWithGlossary(f.fix)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <button onClick={() => { setGradeResult(null); setRoutineText(""); }} className="btn btn-ghost" style={{ marginTop: "1rem" }}>
               ← Grade another routine
             </button>
