@@ -773,6 +773,7 @@ export default function FitnessPlanGenerator() {
   const [showSavedPlans, setShowSavedPlans] = useState(false);
   const [profile, setProfile] = useState(null);
   const [checkingOut, setCheckingOut] = useState(null); // "unlock" | "extra_generation" | null
+  const [justUnlocked, setJustUnlocked] = useState(false); // shows a one-time post-purchase confirmation banner
 
   const [form, setForm] = useState({
     goal: "", target: "", days: "4", specificDays: "", time: "45", trainTime: "morning",
@@ -829,7 +830,8 @@ export default function FitnessPlanGenerator() {
       const interval = setInterval(async () => {
         attempts++;
         const data = await loadProfile();
-        if (data?.has_paid || attempts >= 5) clearInterval(interval);
+        if (data?.has_paid) { setJustUnlocked(true); clearInterval(interval); }
+        else if (attempts >= 5) clearInterval(interval);
       }, 1500);
       return () => clearInterval(interval);
     }
@@ -1425,6 +1427,11 @@ export default function FitnessPlanGenerator() {
               📋 My Plans ({savedPlans.length})
             </button>
           )}
+          {profile?.has_paid && (
+            <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)" }} title="Each plan generation or routine grade uses one credit">
+              {Math.max(totalAllowedGenerations - (profile?.plans_generated || 0), 0)} of {totalAllowedGenerations} credits left
+            </span>
+          )}
           {profile?.has_paid && plan && planId && (
             canCheckIn ? (
               <button onClick={openCheckIn} className="btn btn-cool">
@@ -1438,8 +1445,8 @@ export default function FitnessPlanGenerator() {
           )}
           {plan && !profile?.has_paid && (
             <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
-              <span style={{ fontSize: "0.68rem", color: "var(--faint)", textAlign: "right", maxWidth: 220, lineHeight: 1.3 }}>
-                Your plan is saved in your browser for 24 hours. Unlock to save it permanently and access it anytime.
+              <span style={{ fontSize: "0.68rem", color: "var(--faint)", textAlign: "right", maxWidth: 270, lineHeight: 1.3 }}>
+                Your plan is saved in your browser for 24 hours. €19 unlocks 3 plan generations or routine grades — save permanently and access anytime.
               </span>
               <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
                 {checkingOut === "unlock" ? "Redirecting..." : (
@@ -1481,6 +1488,15 @@ export default function FitnessPlanGenerator() {
           </button>
         </div>
       </div>
+
+      {justUnlocked && (
+        <div style={{ maxWidth: 720, margin: "0.85rem auto 0", padding: "0 1.25rem" }}>
+          <div className="info-box info-box-cool" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+            <p style={{ margin: 0 }}>🎉 You're unlocked! Your €19 covers <strong>3 plan generations or routine grades</strong> total — use them whenever you're ready.</p>
+            <span onClick={() => setJustUnlocked(false)} style={{ cursor: "pointer", fontWeight: 700, color: "var(--accent-deep)", flexShrink: 0 }}>×</span>
+          </div>
+        </div>
+      )}
 
       {showSavedPlans && (
         <div style={{ maxWidth: 720, margin: "1rem auto", padding: "0 1.25rem" }}>
@@ -1561,7 +1577,7 @@ export default function FitnessPlanGenerator() {
                 </button>
               ) : freeActionBlocked ? (
                 <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"} — unlock for €19`}
+                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"} — unlock for €19 (3 plan generations or grades)`}
                 </button>
               ) : (
                 <button onClick={generate} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
@@ -1589,7 +1605,7 @@ export default function FitnessPlanGenerator() {
                 </button>
               ) : freeActionBlocked ? (
                 <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock for €19`}
+                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock for €19 (3 plan generations or grades)`}
                 </button>
               ) : (
                 <button onClick={gradeWorkout} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
