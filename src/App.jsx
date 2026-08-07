@@ -1445,7 +1445,7 @@ export default function FitnessPlanGenerator() {
           )}
           {plan && !profile?.has_paid && (
             <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
-              <span style={{ fontSize: "0.68rem", color: "var(--faint)", textAlign: "right", maxWidth: 220, lineHeight: 1.3 }}>
+              <span style={{ fontSize: "0.68rem", color: "var(--faint)", textAlign: "right", maxWidth: 270, lineHeight: 1.3 }}>
                 Your plan is saved in your browser for 24 hours. €19 unlocks 3 plan generations or routine grades — save permanently and access anytime.
               </span>
               <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
