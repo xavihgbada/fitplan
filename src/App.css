@@ -432,6 +432,40 @@
   white-space: nowrap;
 }
 
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 0.65rem 1rem;
+    gap: 0.5rem;
+  }
+  .app-tagline {
+    display: none;
+  }
+  .header-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 0.4rem;
+    padding-bottom: 0.15rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .header-actions .btn,
+  .header-actions .pill {
+    flex-shrink: 0;
+    padding: 0.32rem 0.65rem;
+    font-size: 0.74rem;
+  }
+}
+
 /* ---------- generic buttons used in header + results ---------- */
 .btn {
   padding: 0.4rem 0.9rem;
@@ -881,7 +915,12 @@
   color: var(--ink);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.exercise-body {
+  min-width: 0;
 }
 
 .exercise-action-btn {

@@ -1510,7 +1510,7 @@ export default function FitnessPlanGenerator() {
           <div className="app-wordmark">FitPlan AI</div>
           <div className="app-tagline">Your Personalized Fitness AI</div>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
+        <div className="header-actions">
           {profile?.has_paid && (
             <button onClick={() => setShowSavedPlans(!showSavedPlans)} className="btn btn-ghost">
               📋 My Plans ({savedPlans.length})
@@ -1791,7 +1791,7 @@ export default function FitnessPlanGenerator() {
                           <div key={i} className={`exercise-card${selectedExercise === ex.name ? " is-selected" : ""}`}>
                             <div className="exercise-row">
                               <div className="exercise-index">{i + 1}</div>
-                              <div>
+                              <div className="exercise-body">
                                 <div className="exercise-name">
                                   {ex.name}
                                   <span onClick={() => openYoutube(ex.name)} className="exercise-action-btn">▶ how to</span>
