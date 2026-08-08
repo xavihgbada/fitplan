@@ -1347,6 +1347,15 @@ export default function FitnessPlanGenerator() {
             </div>
           </div>
 
+          <div style={{ marginTop: "3rem" }}>
+            <p className="landing-eyebrow">Pricing</p>
+            <div className="landing-pricing">
+              <div className="landing-pricing-amount">€19 <span className="landing-pricing-amount-unit">one-time</span></div>
+              <p className="landing-pricing-detail">= <strong>3 credits</strong> — each one good for a full plan generation or a workout grade, spend them however you like.</p>
+              <p className="landing-pricing-extra">Need more later? Extra credits are €7 each.</p>
+            </div>
+          </div>
+
           {/* Testimonials — add real, permission-confirmed quotes here once testers have said yes */}
         </div>
 
