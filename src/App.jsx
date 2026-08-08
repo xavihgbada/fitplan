@@ -439,6 +439,29 @@ General notes for the week (may be empty): ${latest.notes || "None"}
 Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
 };
 
+// Single-exercise swap — deliberately scoped to one exercise, not the full day/week
+// adjustment flow above, so it stays a small, fast, targeted call.
+const SWAP_SYSTEM_PROMPT = `You are an expert fitness coach replacing a single exercise in a client's existing workout. Return ONLY a valid JSON object for the replacement exercise, no markdown, no explanation, no preamble, matching this exact structure:
+
+{ "name": "Exercise name", "sets": "3", "reps": "10-12", "rest": "60s", "effort": "2 RIR", "note": "Swapped — one short line explaining why, plus a brief form tip if useful" }
+
+Pick a genuinely different movement, not just a lighter version of the same lift, that targets a similar muscle group and matches the set/rep/rest/effort format of the exercise it's replacing. Use only equipment already evident from the rest of the day's workout given below — never introduce equipment nothing else in that workout uses. Respond to the client's stated reason specifically:
+- No equipment → substitute something usable with the equipment the other exercises in this workout already use.
+- Pain/injury → a genuinely different movement pattern that avoids that stress, not a lighter version of the same lift.
+- Dislike → a different exercise for the same muscle group.
+- Anything else, vague, or missing → a reasonable substitution without over-interpreting.
+The "note" field must start with "Swapped — " followed by the one-line reason for the substitution.`;
+
+const buildSwapPrompt = (workout, exercise, reason) => `Here is the rest of this workout for context (equipment and structure already reflected in it):
+${JSON.stringify(workout)}
+
+Replace this exercise:
+${JSON.stringify(exercise)}
+
+Client's reason: ${reason}
+
+Return only the JSON object for the replacement exercise.`;
+
 const GRADE_SYSTEM_PROMPT = `You are an expert fitness coach reviewing a client's existing workout routine for quality issues. Return ONLY a valid JSON object, no markdown, no explanation, no preamble. The JSON must exactly match this structure:
 
 {
@@ -804,6 +827,12 @@ export default function FitnessPlanGenerator() {
   const [skipReasons, setSkipReasons] = useState({}); // "day::exerciseName" -> reason string, only used when skipped
   const [checkInNotes, setCheckInNotes] = useState("");
   const [adjusting, setAdjusting] = useState(false);
+
+  // --- Single-exercise swap state ---
+  const [swapOpenKey, setSwapOpenKey] = useState(null); // "day::index" of the exercise with its reason box open
+  const [swapReason, setSwapReason] = useState("");
+  const [swapping, setSwapping] = useState(false);
+  const [swapError, setSwapError] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -1200,6 +1229,49 @@ export default function FitnessPlanGenerator() {
     }
   };
 
+  // --- Single-exercise swap handlers ---
+  const openSwap = (day, index) => {
+    const key = `${day}::${index}`;
+    setSwapOpenKey(k => (k === key ? null : key));
+    setSwapReason("");
+    setSwapError("");
+  };
+
+  const submitSwap = async (workout, index) => {
+    setSwapping(true);
+    setSwapError("");
+    try {
+      const res = await fetch("/api/adjust-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 300,
+          system: SWAP_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: buildSwapPrompt(workout, workout.exercises[index], swapReason.trim() || "No reason given") }],
+        }),
+      });
+      const data = await res.json();
+      const text = data.content?.map(b => b.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const newExercise = JSON.parse(clean);
+
+      const updatedPlan = {
+        ...plan,
+        workouts: plan.workouts.map(w => (
+          w.day !== workout.day ? w : { ...w, exercises: w.exercises.map((ex, i) => (i === index ? newExercise : ex)) }
+        )),
+      };
+      setPlan(updatedPlan);
+      if (planId) await supabase.from("plans").update({ plan_data: updatedPlan }).eq("id", planId);
+      setSwapOpenKey(null);
+    } catch (e) {
+      setSwapError("Couldn't find a replacement. Please try again.");
+    } finally {
+      setSwapping(false);
+    }
+  };
+
   if (page === "terms") {
     return (
       <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
@@ -1486,6 +1558,7 @@ export default function FitnessPlanGenerator() {
               <button onClick={() => {
                 if (window.confirm("Starting a new plan will replace this one. Routines work best when you stick with them and let check-ins adjust them over time, rather than switching often. Continue anyway?")) {
                   setPlan(null);
+                  setSwapOpenKey(null);
                 }
               }} className="btn btn-ghost">
                 ← New Plan
@@ -1496,6 +1569,7 @@ export default function FitnessPlanGenerator() {
             <button onClick={() => {
               localStorage.removeItem(`fitplan_pending_plan_${session.user.id}`);
               setPlan(null);
+              setSwapOpenKey(null);
             }} className="btn btn-ghost">
               ← New Plan
             </button>
@@ -1711,14 +1785,19 @@ export default function FitnessPlanGenerator() {
                         </div>
                       )}
                       <div className="exercise-list">
-                        {w.exercises?.map((ex, i) => (
+                        {w.exercises?.map((ex, i) => {
+                          const swapKey = `${w.day}::${i}`;
+                          return (
                           <div key={i} className={`exercise-card${selectedExercise === ex.name ? " is-selected" : ""}`}>
                             <div className="exercise-row">
                               <div className="exercise-index">{i + 1}</div>
                               <div>
                                 <div className="exercise-name">
                                   {ex.name}
-                                  <span onClick={() => openYoutube(ex.name)} className="exercise-how-to">▶ how to</span>
+                                  <span onClick={() => openYoutube(ex.name)} className="exercise-action-btn">▶ how to</span>
+                                  {planId && (
+                                    <span onClick={() => openSwap(w.day, i)} className="exercise-action-btn">Can't do this?</span>
+                                  )}
                                 </div>
                                 {ex.note && <div className="exercise-note">{renderWithGlossary(ex.note)}</div>}
                               </div>
@@ -1728,8 +1807,27 @@ export default function FitnessPlanGenerator() {
                                 {ex.effort && <div className="exercise-effort">{firstEffortIndices.has(i) ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                               </div>
                             </div>
+                            {swapOpenKey === swapKey && (
+                              <div style={{ padding: "0 0.9rem 0.75rem" }}>
+                                <input
+                                  type="text"
+                                  value={swapReason}
+                                  onChange={e => setSwapReason(e.target.value)}
+                                  placeholder="Why? (no equipment, pain, dislike, or something else)"
+                                  style={{ width: "100%", padding: "0.4rem 0.6rem", fontSize: "0.78rem", borderRadius: "6px", border: "1.5px solid #FCA5A5", background: "#FEF2F2", color: "#111827", outline: "none", boxSizing: "border-box" }}
+                                />
+                                {swapError && <p style={{ fontSize: "0.72rem", color: "#DC2626", margin: "0.35rem 0 0" }}>{swapError}</p>}
+                                <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+                                  <button onClick={() => setSwapOpenKey(null)} className="btn btn-ghost" style={{ padding: "0.3rem 0.7rem", fontSize: "0.75rem" }}>Cancel</button>
+                                  <button onClick={() => submitSwap(w, i)} disabled={swapping} className="btn btn-solid" style={{ padding: "0.3rem 0.7rem", fontSize: "0.75rem" }}>
+                                    {swapping ? "Swapping..." : "Get a replacement"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       {w.cooldown && (
                         <div className="info-box info-box-cool">
