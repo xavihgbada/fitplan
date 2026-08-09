@@ -640,6 +640,58 @@ const getFirstEffortIndices = (exercises) => {
   return indices;
 };
 
+// --- Progress tracking / recommendation logic ---
+// Pulls every number out of a reps string ("10-12", "8 each leg", "15") and
+// treats the min/max as the target range. Strings with no number (e.g. "AMRAP")
+// yield no range, so no recommendation is possible for that exercise.
+const parseRepRange = (repsStr) => {
+  const nums = (repsStr || "").match(/\d+/g)?.map(Number);
+  if (!nums || nums.length === 0) return null;
+  return { min: Math.min(...nums), max: Math.max(...nums) };
+};
+
+const WEIGHT_STEP_KG = 2.5;
+const roundToHalfKg = (w) => Math.round(w * 2) / 2;
+
+// avgWeight is optional (bodyweight/cardio exercises won't have one) — the
+// recommendation level is always based on reps alone; a specific weight
+// suggestion is only included when a weight was actually logged.
+const computeRecommendation = (avgReps, range, prevAvgReps, avgWeight) => {
+  if (avgReps >= range.max) {
+    return { level: "progress", weightSuggestion: avgWeight ? roundToHalfKg(avgWeight + WEIGHT_STEP_KG) : null };
+  }
+  if (avgReps >= range.min) {
+    return { level: "maintain" };
+  }
+  // Below range: only flag a deload if the immediately preceding check-in was
+  // ALSO below range for this exact exercise — a single off session just logs.
+  if (prevAvgReps != null && prevAvgReps < range.min) {
+    return { level: "deload", weightSuggestion: avgWeight ? roundToHalfKg(avgWeight * 0.9) : null };
+  }
+  return null;
+};
+
+// Reads the most recent check-in's logged reps/weight for one exercise and,
+// if the check-in immediately before that also logged it, feeds both into
+// computeRecommendation. Only ever looks one check-in back, per spec.
+const getExerciseRecommendation = (checkins, day, exerciseName, repsStr) => {
+  const range = parseRepRange(repsStr);
+  if (!range || checkins.length === 0) return null;
+  const lastIdx = checkins.length - 1;
+  const latest = checkins[lastIdx].completed_exercises?.[day]?.[exerciseName];
+  if (!latest?.done || typeof latest.avgReps !== "number") return null;
+  const prev = lastIdx > 0 ? checkins[lastIdx - 1].completed_exercises?.[day]?.[exerciseName] : null;
+  const prevAvgReps = (prev?.done && typeof prev.avgReps === "number") ? prev.avgReps : null;
+  return computeRecommendation(latest.avgReps, range, prevAvgReps, latest.avgWeight ?? null);
+};
+
+const RECOMMENDATION_TONE = { progress: "accent", maintain: "cool", deload: "warm" };
+const RECOMMENDATION_LABEL = {
+  progress: (r) => `↑ Progress${r.weightSuggestion ? ` — try ${r.weightSuggestion}kg` : " — add a rep next time"}`,
+  maintain: () => "→ Maintain",
+  deload: (r) => `↓ Deload${r.weightSuggestion ? ` — try ${r.weightSuggestion}kg` : " — ease up next session"}`,
+};
+
 const LANDING_PREVIEW_EXERCISES = [
   { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
   { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
@@ -825,6 +877,7 @@ export default function FitnessPlanGenerator() {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [checkInState, setCheckInState] = useState({}); // "day::exerciseName" -> true/false
   const [skipReasons, setSkipReasons] = useState({}); // "day::exerciseName" -> reason string, only used when skipped
+  const [checkInLogs, setCheckInLogs] = useState({}); // "day::exerciseName" -> { avgWeight, avgReps }, only used when done
   const [checkInNotes, setCheckInNotes] = useState("");
   const [adjusting, setAdjusting] = useState(false);
 
@@ -1159,12 +1212,19 @@ export default function FitnessPlanGenerator() {
     });
     setCheckInState(initial);
     setSkipReasons({});
+    setCheckInLogs({});
     setShowCheckIn(true);
   };
 
   const updateSkipReason = (day, exerciseName, value) => {
     const key = `${day}::${exerciseName}`;
     setSkipReasons(p => ({ ...p, [key]: value }));
+  };
+
+  const updateCheckInLog = (day, exerciseName, field, rawValue) => {
+    const key = `${day}::${exerciseName}`;
+    const num = rawValue === "" ? null : Number(rawValue);
+    setCheckInLogs(p => ({ ...p, [key]: { ...p[key], [field]: (num == null || Number.isNaN(num)) ? null : num } }));
   };
 
   const submitCheckIn = async () => {
@@ -1178,7 +1238,7 @@ export default function FitnessPlanGenerator() {
           const key = `${w.day}::${ex.name}`;
           const done = !!checkInState[key];
           completed_exercises[w.day][ex.name] = done
-            ? { done: true }
+            ? { done: true, avgWeight: checkInLogs[key]?.avgWeight ?? null, avgReps: checkInLogs[key]?.avgReps ?? null }
             : { done: false, reason: skipReasons[key]?.trim() || "No reason given" };
         });
       });
@@ -1219,6 +1279,7 @@ export default function FitnessPlanGenerator() {
       setCurrentWeek(currentWeek + 1);
       setCheckInState({});
       setSkipReasons({});
+      setCheckInLogs({});
       setCheckInNotes("");
       setShowCheckIn(false);
       setActiveWorkout(0);
@@ -1787,6 +1848,8 @@ export default function FitnessPlanGenerator() {
                       <div className="exercise-list">
                         {w.exercises?.map((ex, i) => {
                           const swapKey = `${w.day}::${i}`;
+                          const recommendation = getExerciseRecommendation(checkins, w.day, ex.name, ex.reps);
+                          const recommendationTone = recommendation && GRADE_TONE_STYLES[RECOMMENDATION_TONE[recommendation.level]];
                           return (
                           <div key={i} className={`exercise-card${selectedExercise === ex.name ? " is-selected" : ""}`}>
                             <div className="exercise-row">
@@ -1807,6 +1870,11 @@ export default function FitnessPlanGenerator() {
                                 {ex.effort && <div className="exercise-effort">{firstEffortIndices.has(i) ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                               </div>
                             </div>
+                            {recommendation && (
+                              <div className="exercise-reco" style={{ background: recommendationTone.bg, color: recommendationTone.text }}>
+                                {RECOMMENDATION_LABEL[recommendation.level](recommendation)}
+                              </div>
+                            )}
                             {swapOpenKey === swapKey && (
                               <div style={{ padding: "0 0.9rem 0.75rem" }}>
                                 <input
@@ -1814,7 +1882,7 @@ export default function FitnessPlanGenerator() {
                                   value={swapReason}
                                   onChange={e => setSwapReason(e.target.value)}
                                   placeholder="Why? (no equipment, pain, dislike, or something else)"
-                                  style={{ width: "100%", padding: "0.4rem 0.6rem", fontSize: "0.78rem", borderRadius: "6px", border: "1.5px solid #FCA5A5", background: "#FEF2F2", color: "#111827", outline: "none", boxSizing: "border-box" }}
+                                  className="reason-input"
                                 />
                                 {swapError && <p style={{ fontSize: "0.72rem", color: "#DC2626", margin: "0.35rem 0 0" }}>{swapError}</p>}
                                 <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
@@ -1960,30 +2028,36 @@ export default function FitnessPlanGenerator() {
       </div>
 
       {showCheckIn && plan && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: "14px", maxWidth: 560, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: "1.5rem" }}>
-            <h3 style={{ fontSize: "1.05rem", fontWeight: 800, margin: "0 0 0.25rem" }}>Week {currentWeek} check-in</h3>
-            <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: "0 0 1.25rem" }}>Everything's checked as done by default — uncheck anything you skipped and tell us why.</p>
+        <div className="checkin-overlay">
+          <div className="checkin-card">
+            <h3 className="checkin-title">Week {currentWeek} check-in</h3>
+            <p className="checkin-sub">Everything's checked as done by default — uncheck anything you skipped and tell us why. For anything you did, log the weight and reps you averaged across working sets — it drives next time's progress suggestion.</p>
 
             {plan.workouts.map((w, wi) => (
-              <div key={wi} style={{ marginBottom: "1rem" }}>
-                <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#111827", marginBottom: "0.4rem" }}>{w.day} — {w.name}</div>
+              <div key={wi} className="checkin-day">
+                <div className="checkin-day-title">{w.day} — {w.name}</div>
                 {w.exercises.map((ex, ei) => {
                   const key = `${w.day}::${ex.name}`;
                   const done = !!checkInState[key];
+                  const log = checkInLogs[key] || {};
                   return (
-                    <div key={ei} style={{ padding: "0.4rem 0" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.83rem", color: "#374151", cursor: "pointer" }}>
+                    <div key={ei} className="checkin-exercise">
+                      <label className="checkin-exercise-label">
                         <input type="checkbox" checked={done} onChange={() => toggleExerciseDone(w.day, ex.name)} />
                         {ex.name}
                       </label>
-                      {!done && (
+                      {done ? (
+                        <div className="checkin-log-row">
+                          <Field label="Weight (kg)" name="avgWeight" type="number" value={log.avgWeight ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgWeight", e.target.value)} placeholder="optional" />
+                          <Field label="Reps" name="avgReps" type="number" value={log.avgReps ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgReps", e.target.value)} placeholder="optional" />
+                        </div>
+                      ) : (
                         <input
                           type="text"
                           value={skipReasons[key] || ""}
                           onChange={e => updateSkipReason(w.day, ex.name, e.target.value)}
                           placeholder="Why? (pain, too hard, ran out of time, boring...)"
-                          style={{ width: "100%", marginTop: "0.3rem", padding: "0.4rem 0.6rem", fontSize: "0.78rem", borderRadius: "6px", border: "1.5px solid #FCA5A5", background: "#FEF2F2", color: "#111827", outline: "none", boxSizing: "border-box" }}
+                          className="reason-input"
                         />
                       )}
                     </div>
@@ -1995,8 +2069,8 @@ export default function FitnessPlanGenerator() {
             <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week — specific skip reasons are captured above, next to each exercise." />
 
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
-              <button onClick={() => setShowCheckIn(false)} style={{ flex: 1, padding: "0.65rem", border: "1.5px solid #E5E7EB", borderRadius: "9px", background: "transparent", color: "#6B7280", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={submitCheckIn} disabled={adjusting} style={{ flex: 2, padding: "0.65rem", border: "none", borderRadius: "9px", background: "#16A34A", color: "#fff", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer" }}>
+              <button onClick={() => setShowCheckIn(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+              <button onClick={submitCheckIn} disabled={adjusting} className="btn btn-solid" style={{ flex: 2 }}>
                 {adjusting ? "Adjusting your plan..." : "Submit & adjust next week"}
               </button>
             </div>
