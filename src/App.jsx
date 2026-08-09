@@ -693,11 +693,11 @@ const RECOMMENDATION_LABEL = {
 };
 
 const LANDING_PREVIEW_EXERCISES = [
-  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead." },
-  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave." },
-  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control — this is what actually builds shoulder width." },
-  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", effort: "Train to failure", note: "Replaces the skull crusher you said caused elbow pain." },
-  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing." },
+  { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead.", reco: { level: "progress", weightSuggestion: 25 } },
+  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave.", reco: { level: "maintain" } },
+  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control — this is what actually builds shoulder width.", reco: { level: "deload", weightSuggestion: 9 } },
+  { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", effort: "Train to failure", note: "Replaces the skull crusher you said caused elbow pain.", reco: { level: "progress", weightSuggestion: 17.5 } },
+  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing.", reco: { level: "maintain" } },
 ];
 const LANDING_PREVIEW_FIRST_EFFORT_INDICES = getFirstEffortIndices(LANDING_PREVIEW_EXERCISES);
 
@@ -1444,6 +1444,24 @@ export default function FitnessPlanGenerator() {
                 <div className="landing-feature-body">Download a clean PDF of your plan, or come back anytime to view it and check in.</div>
               </div>
             </div>
+            <div className="landing-feature">
+              <div className="landing-feature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="12" height="17" rx="1.5" /><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" /><path d="M9 12.5l2 2 4-4.5" /></svg>
+              </div>
+              <div>
+                <div className="landing-feature-title">Real feedback, not praise</div>
+                <div className="landing-feature-body">Paste or describe your current routine and get specific fixes — goal alignment, injury safety, and more — not generic encouragement.</div>
+              </div>
+            </div>
+            <div className="landing-feature">
+              <div className="landing-feature-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 19V5" /><path d="M3 19h18" /><path d="M7 15l4-4 3 3 5-6" /></svg>
+              </div>
+              <div>
+                <div className="landing-feature-title">Knows when to add weight</div>
+                <div className="landing-feature-body">Log your weight and reps each week and get an automatic progress, maintain, or deload call — not a static plan that never adapts.</div>
+              </div>
+            </div>
           </div>
 
           <div style={{ marginTop: "3rem", textAlign: "left" }}>
@@ -1465,11 +1483,17 @@ export default function FitnessPlanGenerator() {
                   <span className="info-box-label">Warm-up</span>
                   <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min band pull-aparts, arm circles, and light incline push-ups</p>
                 </div>
-                {LANDING_PREVIEW_EXERCISES.map((ex, i) => (
+                {LANDING_PREVIEW_EXERCISES.map((ex, i) => {
+                  const recoTone = GRADE_TONE_STYLES[RECOMMENDATION_TONE[ex.reco.level]];
+                  return (
                   <div key={i} className="exercise-card" style={{ marginBottom: "0.5rem" }}>
                     <div className="exercise-row" style={{ gridTemplateColumns: "1fr auto", padding: "0.7rem 0.85rem" }}>
-                      <div>
-                        <div className="exercise-name" style={{ fontSize: "0.85rem" }}>{ex.name}</div>
+                      <div className="exercise-body">
+                        <div className="exercise-name" style={{ fontSize: "0.85rem" }}>
+                          {ex.name}
+                          <span onClick={() => openYoutube(ex.name)} className="exercise-action-btn">▶ how to</span>
+                          <span className="exercise-action-btn">Can't do this?</span>
+                        </div>
                         <div className="exercise-note">{ex.note}</div>
                       </div>
                       <div className="exercise-stats">
@@ -1478,8 +1502,12 @@ export default function FitnessPlanGenerator() {
                         {ex.effort && <div className="exercise-effort">{LANDING_PREVIEW_FIRST_EFFORT_INDICES.has(i) ? renderWithGlossary(ex.effort) : ex.effort}</div>}
                       </div>
                     </div>
+                    <div className="exercise-reco" style={{ background: recoTone.bg, color: recoTone.text }}>
+                      {RECOMMENDATION_LABEL[ex.reco.level](ex.reco)}
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
                 <div className="info-box info-box-cool" style={{ marginTop: "0.25rem" }}>
                   <span className="info-box-label">Cool-down</span>
                   <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min static stretching — chest doorway stretch, cross-body shoulder stretch</p>
