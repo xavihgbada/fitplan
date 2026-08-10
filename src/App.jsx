@@ -344,6 +344,10 @@ EFFORT TARGETS — CRITICAL: every strength/hypertrophy working set needs a popu
 - Never target failure, and keep effort conservative ("Form focus"/"Light effort" or low RIR), for any exercise affected by the person's stated injuries/limitations.
 - This governs how hard each set is pushed, not how many sets are programmed — never let it push volume outside the VOLUME GUIDELINES ranges above.
 
+AGE-BASED GUIDANCE — only applies at the extremes; for ages in between, the fitness-level and goal-based guidance above already covers it:
+- Under 18: prioritize technique and form over load progression. Never prescribe max-effort or 1-rep-max-style work — keep "effort" language conservative regardless of stated fitness level, and keep week-to-week progression more conservative than an adult at the same fitness level would get.
+- 55 and older: bias exercise selection toward joint-conscious movements, give warm-ups more explicit emphasis than usual, and avoid unnecessarily ballistic or high-impact movements (e.g. box jumps, plyometric bounds) unless the person's stated fitness level and goals clearly support it.
+
 SESSION BALANCE — CRITICAL: within a single session, never let more than 2 of the exercises target the same primary muscle group unless the user explicitly requested a specialization day for that muscle. This matters most for low-frequency plans (2-3 gym days/week, especially when complementing other activities like classes or sports) — these sessions should train multiple muscle groups in a balanced, close-to-full-body way rather than concentrating on one area. Check your own exercise list against this rule before finalizing the plan.
 
 SPLIT STRUCTURE — CRITICAL: for 2-3 training days/week, default to full-body or upper/lower session structure, not narrow body-part splits (push/pull/legs, bro splits, etc.) — at low frequency there's no later session that week to catch a muscle group a narrow split skips, which is exactly how a group gets omitted entirely. For 4+ training days/week, body-part splits are fine since the week has enough sessions to still cover every muscle group across the split.
@@ -395,6 +399,7 @@ ADJUSTMENT RULES:
 - EQUIPMENT RULE — CRITICAL: only assign exercises matching the equipment already established for this client.
 - VOLUME GUIDELINES: Beginner 10-15 sets/muscle/week, Intermediate 12-18, Advanced 16-22. Progressive overload should never push volume outside these ranges in one jump — increase by 1-2 sets max per adjustment.
 - EFFORT TARGETS: every strength/hypertrophy working set keeps a populated "effort" value, 2-3 words max (e.g. "2-3 RIR", "Train to failure", "Form focus"), consistent with the original plan's fitness level and phase — conservative RIR (2-3) for beginners with a plain-language explanation the first time a numeric RIR appears; short qualitative labels ("Form focus"/"Light effort") for beginner technique-priority compounds instead of RIR, no exceptions within strength work; tighter RIR (1-2) with occasional true-failure sets for intermediate/advanced, especially in the Peak phase. Leave "effort" as "" only for cardio/conditioning, warm-ups, cooldowns, and pure mobility work. Never target failure, and keep effort conservative, for any exercise affected by the client's injuries/limitations. This governs how hard a set is pushed, not set count — don't let it affect the volume ranges above.
+- AGE-BASED GUIDANCE — only applies at the extremes: if the original plan reflects age-appropriate programming for a minor (conservative progression, no max-effort/1RM-style work) or for an older adult (joint-conscious exercise selection, explicit warmup emphasis, no unnecessary ballistic/high-impact movements), preserve that same character when adjusting — do not introduce max-effort/1RM work into a plan built conservative for a minor, and do not introduce ballistic/high-impact movements into a plan built joint-conscious for an older adult.
 - SESSION BALANCE — CRITICAL: never let more than 2 exercises in a single session target the same primary muscle group, unless the original plan was an explicit specialization day. This matters most for low-frequency plans (2-3 days/week).
 - CORE/ABS — CRITICAL: keep core/abs volume concentrated into 2-4 training days with 1-2 exercises each (roughly 8-15 sets/week total) — do not spread it into a single token exercise on every day, which under-trains the muscle per session.
 - Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).`;
@@ -408,6 +413,7 @@ Preferred training days: ${data.specificDays || "Flexible — assign optimal day
 Minutes per session: ${data.time}
 Preferred training time: ${data.trainTime}
 Fitness level: ${data.level}
+Age: ${data.age}
 Other physical activity / sports / extracurriculars: ${data.otherActivity || "None"}
 Main challenge / biggest excuse: ${data.excuse}
 Previous attempts & what went wrong: ${data.pastAttempts || "None specified"}
@@ -852,7 +858,7 @@ export default function FitnessPlanGenerator() {
 
   const [form, setForm] = useState({
     goal: "", target: "", days: "4", specificDays: "", time: "45", trainTime: "morning",
-    level: "beginner", excuse: "", pastAttempts: "",
+    level: "beginner", age: "", excuse: "", pastAttempts: "",
     enjoy: "", dislike: "", injuries: "", equipment: [], equipmentLocation: "",
     otherActivity: ""
   });
@@ -1106,6 +1112,8 @@ export default function FitnessPlanGenerator() {
   const generate = async () => {
     const errs = {};
     if (!form.goal.trim()) errs.goal = "Tell us your main fitness goal.";
+    if (!form.age.trim()) errs.age = "Tell us your age.";
+    else if (!Number.isFinite(Number(form.age)) || Number(form.age) < 13 || Number(form.age) > 90) errs.age = "Enter an age between 13 and 90.";
     if (!form.excuse.trim()) errs.excuse = "This helps the plan work around your real challenge.";
     if (!form.equipmentLocation) errs.equipmentLocation = "Select where you train.";
     setFieldErrors(errs);
@@ -1736,7 +1744,10 @@ export default function FitnessPlanGenerator() {
                 <Field label="Preferred time" name="trainTime" value={form.trainTime} onChange={handleChange} as="select" options={[{ value: "morning", label: "Morning" }, { value: "afternoon", label: "Afternoon" }, { value: "evening", label: "Evening" }, { value: "flexible", label: "Flexible" }]} />
               </div>
               <Field label="Specific days? (optional)" name="specificDays" value={form.specificDays} onChange={handleChange} placeholder="e.g. Monday, Wednesday, Friday — leave blank to let the plan decide" hint="Only fill this in if you have fixed days." />
-              <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+                <Field label="Age" name="age" value={form.age} onChange={handleChange} type="number" placeholder="e.g. 28" error={fieldErrors.age} />
+                <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
+              </div>
 
               <Divider label="Your Challenges" />
               <Field label="What's your biggest excuse or challenge?" name="excuse" value={form.excuse} onChange={handleChange} placeholder="e.g. I get home tired at 6pm and plain lifting bores me" as="textarea" error={fieldErrors.excuse} />
