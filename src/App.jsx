@@ -1242,8 +1242,15 @@ export default function FitnessPlanGenerator() {
     setCheckInLogs(p => ({ ...p, [key]: { ...p[key], [field]: (num == null || Number.isNaN(num)) ? null : num } }));
   };
 
+  const submitCheckInRef = useRef(false);
   const submitCheckIn = async () => {
     if (!planId || !canCheckIn) return;
+    // A ref, not state — disabled={adjusting} only takes effect once React
+    // re-renders and the DOM updates, which isn't fast enough to stop a real
+    // double-click/double-tap from firing this twice before that commits.
+    // Refs update synchronously, so this closes the gap.
+    if (submitCheckInRef.current) return;
+    submitCheckInRef.current = true;
     setAdjusting(true);
     try {
       const completed_exercises = {};
@@ -1301,6 +1308,7 @@ export default function FitnessPlanGenerator() {
     } catch (e) {
       setError("Something went wrong adjusting your plan. Please try again.");
     } finally {
+      submitCheckInRef.current = false;
       setAdjusting(false);
     }
   };
