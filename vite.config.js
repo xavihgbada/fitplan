@@ -46,7 +46,7 @@ const mockGeneratePlan = () => ({
             cooldown: '5 min quad and hamstring stretch',
             exercises: [
               { name: 'Goblet Squat', sets: '4', reps: '8-10', rest: '120s', note: '' },
-              { name: 'Romanian Deadlift', sets: '3', reps: '10-12', rest: '90s', note: '' },
+              { name: 'Romanian Deadlift (Barbell)', sets: '3', reps: '10-12', rest: '90s', note: '' },
             ],
           },
         ],
