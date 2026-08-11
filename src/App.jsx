@@ -356,6 +356,12 @@ WEEKLY MUSCLE COVERAGE — CRITICAL: across all sessions in the week, every majo
 
 CORE/ABS — CRITICAL: treat core/abs like any other muscle group, with real weekly volume (aim for roughly 8-15 sets/week, adjusted for fitness level same as other muscles) — do not satisfy this by inserting exactly one core exercise into every single day, since that spreads volume too thin to matter per session. Instead, concentrate direct core work (e.g. planks, hanging leg raises, cable crunches, dead bugs) into 2-4 of the training days with 1-2 exercises each, chosen to fit the session's natural focus (e.g. more core work on lower-body or full-body days is often a better fit than on isolated arm/shoulder days). Account for this within the person's stated session duration on the days it appears.
 
+EXERCISE NAMING — CRITICAL: the "name" field must be a clean, consistent base name — equipment + movement only, from common gym vocabulary. Never append grip, stance/foot-placement, tempo, angle, or setup detail (single-arm, low pulley, kneeling, rope attachment, degree angles, etc.) to the name — that detail belongs in "note". The same movement showing up as several different name strings across a plan (or across a client's plans over time) breaks anything that needs to recognize it's the same exercise, like weekly progress tracking — treat exact, consistent naming as seriously as the JSON structure itself.
+- "Cable Lateral Raise (Single Arm, Low Pulley)" → name: "Cable Lateral Raise", with "single arm, cable at lowest setting" moved into "note".
+- "Face Pull (Cable, Rope Attachment)" → name: "Cable Face Pull", with "rope attachment, pull to eye level" moved into "note".
+- "Leg Extension (Machine)" → name: "Leg Extension Machine" — equipment belongs in the name, parenthetical qualifiers don't.
+- Use the same casing and hyphenation for a given exercise every time — Title Case, with hyphens joining compound modifiers that are part of the base name itself (e.g. "Single-Arm Dumbbell Row", "Close-Grip Bench Press"), never mixing a hyphenated and unhyphenated version of the same name in one plan.
+
 MUSCLE GROUP ACCURACY — never mislabel muscle targets:
 - Medial (lateral) delt exercises: lateral raises, cable lateral raises, machine lateral raises
 - Rear delt exercises: face pulls, reverse flies, bent-over lateral raises, barbell upright rows
@@ -402,7 +408,8 @@ ADJUSTMENT RULES:
 - AGE-BASED GUIDANCE — only applies at the extremes: if the original plan reflects age-appropriate programming for a minor (conservative progression, no max-effort/1RM-style work) or for an older adult (joint-conscious exercise selection, explicit warmup emphasis, no unnecessary ballistic/high-impact movements), preserve that same character when adjusting — do not introduce max-effort/1RM work into a plan built conservative for a minor, and do not introduce ballistic/high-impact movements into a plan built joint-conscious for an older adult.
 - SESSION BALANCE — CRITICAL: never let more than 2 exercises in a single session target the same primary muscle group, unless the original plan was an explicit specialization day. This matters most for low-frequency plans (2-3 days/week).
 - CORE/ABS — CRITICAL: keep core/abs volume concentrated into 2-4 training days with 1-2 exercises each (roughly 8-15 sets/week total) — do not spread it into a single token exercise on every day, which under-trains the muscle per session.
-- Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).`;
+- Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).
+- EXERCISE NAMING — CRITICAL: keep the same clean base-name format as the original plan — equipment + movement only (e.g. "Cable Lateral Raise", "Leg Extension Machine"), never grip/stance/tempo/setup detail folded into the name (that belongs in "note"). Do not rename any exercise that isn't being changed. If substituting a new exercise for a skipped one, name the replacement the same clean way. Exact name continuity across weeks matters for progress tracking, which compares exercise names as-is.`;
 
 const buildPrompt = (data) => `Create a personalized 8-week fitness plan for:
 
