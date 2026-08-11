@@ -463,6 +463,7 @@ Pick a genuinely different movement, not just a lighter version of the same lift
 - Pain/injury → a genuinely different movement pattern that avoids that stress, not a lighter version of the same lift.
 - Dislike → a different exercise for the same muscle group.
 - Anything else, vague, or missing → a reasonable substitution without over-interpreting.
+- EXERCISE NAMING — CRITICAL: the replacement's "name" must be a clean equipment + movement base name only (e.g. "Cable Lateral Raise", "Leg Extension Machine") — no grip/stance/tempo/setup detail folded in, that belongs in "note". Match the same naming convention already used elsewhere in this client's plan.
 The "note" field must start with "Swapped — " followed by the one-line reason for the substitution.`;
 
 const buildSwapPrompt = (workout, exercise, reason) => `Here is the rest of this workout for context (equipment and structure already reflected in it):
