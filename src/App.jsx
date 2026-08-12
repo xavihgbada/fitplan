@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TermsOfService, PrivacyPolicy } from "./legal";
-import { EXERCISE_VIDEOS } from "./exerciseVideos";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -902,9 +901,6 @@ export default function FitnessPlanGenerator() {
   const [swapping, setSwapping] = useState(false);
   const [swapError, setSwapError] = useState("");
 
-  // --- "How to" video modal state ---
-  const [videoModal, setVideoModal] = useState(null); // { name, videoId }
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -1113,16 +1109,6 @@ export default function FitnessPlanGenerator() {
   const openYoutube = (exerciseName) => {
     const query = encodeURIComponent(`how to do ${exerciseName} exercise`);
     window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
-  };
-
-  // Looks up this exercise in the curated EXERCISE_VIDEOS map and opens it in an
-  // in-app modal — a plain public youtube.com/embed/{id} iframe, no API key or
-  // network round-trip involved. Falls back to opening a YouTube search in a new
-  // tab for any exercise name not yet curated.
-  const openVideoModal = (exerciseName) => {
-    const videoId = EXERCISE_VIDEOS[exerciseName];
-    if (!videoId) return openYoutube(exerciseName);
-    setVideoModal({ name: exerciseName, videoId });
   };
 
   const totalAllowedGenerations = 3 + (profile?.generation_credits || 0);
@@ -1926,7 +1912,7 @@ export default function FitnessPlanGenerator() {
                               <div className="exercise-body">
                                 <div className="exercise-name">
                                   {ex.name}
-                                  <span onClick={() => openVideoModal(ex.name)} className="exercise-action-btn">▶ how to</span>
+                                  <span onClick={() => openYoutube(ex.name)} className="exercise-action-btn">▶ how to</span>
                                   {planId && (
                                     <span onClick={() => openSwap(w.day, i)} className="exercise-action-btn">Can't do this?</span>
                                   )}
@@ -2142,26 +2128,6 @@ export default function FitnessPlanGenerator() {
               <button onClick={submitCheckIn} disabled={adjusting} className="btn btn-solid" style={{ flex: 2 }}>
                 {adjusting ? "Adjusting your plan..." : "Submit & adjust next week"}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {videoModal && (
-        <div className="checkin-overlay" onClick={() => setVideoModal(null)}>
-          <div className="video-modal-card" onClick={e => e.stopPropagation()}>
-            <div className="video-modal-head">
-              <h3 className="checkin-title" style={{ margin: 0 }}>{videoModal.name}</h3>
-              <button onClick={() => setVideoModal(null)} className="btn btn-ghost" style={{ padding: "0.3rem 0.7rem", fontSize: "0.75rem" }}>Close</button>
-            </div>
-            <div className="video-modal-embed">
-              <iframe
-                src={`https://www.youtube.com/embed/${videoModal.videoId}`}
-                title={videoModal.name}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
             </div>
           </div>
         </div>
