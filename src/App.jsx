@@ -1595,6 +1595,48 @@ export default function FitnessPlanGenerator() {
             </div>
           </div>
 
+          <div style={{ marginTop: "3rem", textAlign: "left" }}>
+            <p className="landing-eyebrow">What makes it different</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+              <div className="section-card" style={{ padding: "1.25rem" }}>
+                <div className="landing-feature-mark" style={{ marginBottom: "0.75rem" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8 12l3 3 5-6" /></svg>
+                </div>
+                <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Checks in, then adjusts</div>
+                <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Log what you actually did each week and the plan rewrites itself around it, not a static PDF you forget by week three.</div>
+                <div style={{ background: "var(--accent-bg)", borderRadius: "8px", padding: "0.6rem 0.75rem" }}>
+                  <label className="checkin-exercise-label" style={{ pointerEvents: "none" }}>
+                    <input type="checkbox" checked readOnly />
+                    Bench Press
+                  </label>
+                </div>
+              </div>
+
+              <div className="section-card" style={{ padding: "1.25rem" }}>
+                <div className="landing-feature-mark" style={{ marginBottom: "0.75rem" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V10" /><path d="M12 20V4" /><path d="M20 20v-7" /></svg>
+                </div>
+                <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Grades your current routine</div>
+                <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Paste or build any routine, gym-built or homemade, and get a score with specific fixes, not generic encouragement.</div>
+                <div className="grade-score-card" style={{ margin: 0, padding: "0.75rem 0.9rem" }}>
+                  <div className="grade-score-label">Routine Score</div>
+                  <div className="grade-score-value" style={{ fontSize: "1.6rem", color: "var(--accent-deep)" }}>82<span className="grade-score-max">/100</span></div>
+                </div>
+              </div>
+
+              <div className="section-card" style={{ padding: "1.25rem" }}>
+                <div className="landing-feature-mark" style={{ marginBottom: "0.75rem" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 19V5" /><path d="M3 19h18" /><path d="M7 15l4-4 3 3 5-6" /></svg>
+                </div>
+                <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Knows when to push or pull back</div>
+                <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Compares this week's reps and weight against target ranges and calls a clear progress, maintain, or deload, no guesswork.</div>
+                <div className="exercise-reco" style={{ margin: 0, display: "inline-block", background: GRADE_TONE_STYLES.accent.bg, color: GRADE_TONE_STYLES.accent.text }}>
+                  ↑ Progress — try 25kg
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div style={{ marginTop: "3rem" }}>
             <p className="landing-eyebrow">Pricing</p>
             <div className="landing-pricing">
