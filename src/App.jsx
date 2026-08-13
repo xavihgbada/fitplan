@@ -279,6 +279,20 @@ const exportToPDF = async (plan) => {
 // reasoning), not just one field, so it lives once and gets interpolated everywhere.
 const OUTPUT_STYLE_RULE = `OUTPUT STYLE, THE MOST IMPORTANT FORMATTING RULE IN THIS PROMPT: do not use the em dash character (—) anywhere in your response, in any field, ever, not even once. If you would normally reach for one, rewrite the sentence with a comma, period, semicolon, or parentheses instead. Also avoid "not just X, but Y" constructions, and avoid starting sentences with "Remember,". Write plainly, like a knowledgeable coach texting a client, not like an AI assistant summarizing something. Before you finish, check your own output for the — character and rewrite any sentence that has one.`;
 
+// Matches the effort-label vocabulary the AI itself is instructed to use (see EFFORT
+// TARGETS in SYSTEM_PROMPT) — numeric RIR values plus the qualitative labels used for
+// beginner technique-priority work.
+const EFFORT_OPTIONS = [
+  { value: "", label: "Select..." },
+  { value: "Form focus", label: "Form focus" },
+  { value: "Light effort", label: "Light effort" },
+  { value: "3-4 RIR", label: "3-4 RIR" },
+  { value: "2-3 RIR", label: "2-3 RIR" },
+  { value: "1-2 RIR", label: "1-2 RIR" },
+  { value: "0-1 RIR", label: "0-1 RIR" },
+  { value: "Train to failure", label: "Train to failure" },
+];
+
 const HOME_EQUIPMENT_OPTIONS = [
   { id: "barbell", label: "Barbell & plates" },
   { id: "dumbbells", label: "Dumbbells" },
@@ -892,6 +906,8 @@ export default function FitnessPlanGenerator() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState("generate"); // "generate" | "grade"
   const [routineText, setRoutineText] = useState("");
+  const [gradeInputMode, setGradeInputMode] = useState("template"); // "template" | "text"
+  const [templateRows, setTemplateRows] = useState([{ name: "", sets: "", reps: "", effort: "" }]);
   const [grading, setGrading] = useState(false);
   const [gradeResult, setGradeResult] = useState(null);
   const [gradeError, setGradeError] = useState("");
@@ -1188,8 +1204,30 @@ export default function FitnessPlanGenerator() {
     }
   };
 
+  // Template-mode rows serialize into the same plain-text shape the free-text path
+  // already produces, so grade-workout.js (and buildGradePrompt) never need to know
+  // which input mode was used.
+  const serializeTemplateRows = (rows) =>
+    rows
+      .filter(r => r.name.trim())
+      .map(r => {
+        const details = [r.sets && `${r.sets} sets`, r.reps && `${r.reps} reps`, r.effort].filter(Boolean).join(", ");
+        return details ? `${r.name.trim()}: ${details}` : r.name.trim();
+      })
+      .join("\n");
+
+  const updateTemplateRow = (index, field, value) => {
+    setTemplateRows(rows => rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  };
+  const addTemplateRow = () => setTemplateRows(rows => [...rows, { name: "", sets: "", reps: "", effort: "" }]);
+  const removeTemplateRow = (index) => setTemplateRows(rows => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+
   const gradeWorkout = async () => {
-    if (!routineText.trim()) { setGradeError("Paste or describe your current routine first."); return; }
+    const routineTextToGrade = gradeInputMode === "template" ? serializeTemplateRows(templateRows) : routineText;
+    if (!routineTextToGrade.trim()) {
+      setGradeError(gradeInputMode === "template" ? "Add at least one exercise with a name." : "Paste or describe your current routine first.");
+      return;
+    }
     if (!form.equipmentLocation) { setFieldErrors({ equipmentLocation: "Select where you train." }); return; }
     if (atGenerationLimit) { setGradeError("You've used your included generations."); return; }
     if (freeActionBlocked) { setGradeError(`You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock to keep going.`); return; }
@@ -1198,7 +1236,7 @@ export default function FitnessPlanGenerator() {
       const res = await fetch("/api/grade-workout", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, system: GRADE_SYSTEM_PROMPT, messages: [{ role: "user", content: buildGradePrompt(form, routineText) }] }),
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, system: GRADE_SYSTEM_PROMPT, messages: [{ role: "user", content: buildGradePrompt(form, routineTextToGrade) }] }),
       });
       if (res.status === 402) {
         const errBody = await res.json().catch(() => ({}));
@@ -1812,7 +1850,40 @@ export default function FitnessPlanGenerator() {
             ) : (
             <div className="form-card">
               <Divider label="Your Current Routine" />
-              <Field label="Describe or paste your current routine" name="routineText" value={routineText} onChange={e => setRoutineText(e.target.value)} placeholder={"e.g. Monday: Bench press 3x10, Lat pulldown 3x12...\nWednesday: Squat 3x8, Leg curl 3x12..."} as="textarea" hint="List your days, exercises, sets and reps as best you can — rough is fine." />
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.9rem" }}>
+                <button type="button" onClick={() => setGradeInputMode("template")} className={`btn ${gradeInputMode === "template" ? "btn-solid" : "btn-ghost"}`} style={{ padding: "0.4rem 0.9rem", fontSize: "0.82rem" }}>
+                  Build it
+                </button>
+                <button type="button" onClick={() => setGradeInputMode("text")} className={`btn ${gradeInputMode === "text" ? "btn-solid" : "btn-ghost"}`} style={{ padding: "0.4rem 0.9rem", fontSize: "0.82rem" }}>
+                  Paste it
+                </button>
+              </div>
+              {gradeInputMode === "text" ? (
+                <Field label="Describe or paste your current routine" name="routineText" value={routineText} onChange={e => setRoutineText(e.target.value)} placeholder={"e.g. Monday: Bench press 3x10, Lat pulldown 3x12...\nWednesday: Squat 3x8, Leg curl 3x12..."} as="textarea" hint="List your days, exercises, sets and reps as best you can — rough is fine." />
+              ) : (
+                <div>
+                  {templateRows.map((row, i) => (
+                    <div key={i} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", marginBottom: "0.6rem", flexWrap: "wrap" }}>
+                      <div style={{ flex: 2, minWidth: 140 }}>
+                        <Field label={i === 0 ? "Exercise" : ""} name={`ex-name-${i}`} value={row.name} onChange={e => updateTemplateRow(i, "name", e.target.value)} placeholder="e.g. Bench press" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 70 }}>
+                        <Field label={i === 0 ? "Sets" : ""} name={`ex-sets-${i}`} value={row.sets} onChange={e => updateTemplateRow(i, "sets", e.target.value)} type="number" placeholder="3" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 90 }}>
+                        <Field label={i === 0 ? "Reps" : ""} name={`ex-reps-${i}`} value={row.reps} onChange={e => updateTemplateRow(i, "reps", e.target.value)} placeholder="8-12" />
+                      </div>
+                      <div style={{ flex: 1.4, minWidth: 130 }}>
+                        <Field label={i === 0 ? "Effort" : ""} name={`ex-effort-${i}`} value={row.effort} onChange={e => updateTemplateRow(i, "effort", e.target.value)} as="select" options={EFFORT_OPTIONS} />
+                      </div>
+                      {templateRows.length > 1 && (
+                        <button type="button" onClick={() => removeTemplateRow(i)} className="btn btn-ghost" style={{ padding: "0.5rem 0.6rem", fontSize: "0.8rem", flexShrink: 0 }} aria-label="Remove exercise">✕</button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={addTemplateRow} className="btn btn-ghost" style={{ fontSize: "0.82rem" }}>+ Add exercise</button>
+                </div>
+              )}
 
               <Divider label="Your Profile" />
               <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" suggestions={["Build muscle", "Lose fat", "Build muscle while losing fat", "Get stronger", "Improve general fitness and health", "Improve endurance / cardio", "Train for a sport or event"]} />
