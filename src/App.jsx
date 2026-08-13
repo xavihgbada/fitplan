@@ -133,7 +133,7 @@ const exportToPDF = async (plan) => {
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
     doc.setFont("times", "bold");
-    doc.text(`${w.day.toUpperCase()} — ${w.name}`, margin + 4, y + 7);
+    doc.text(`${w.day.toUpperCase()} · ${w.name}`, margin + 4, y + 7);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text(w.duration, pageW - margin - doc.getTextWidth(w.duration) - 4, y + 7);
@@ -293,6 +293,26 @@ const EFFORT_OPTIONS = [
   { value: "Train to failure", label: "Train to failure" },
 ];
 
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+// Suggestion lists for the excuse/enjoy/dislike fields — shown in the same typable
+// combo dropdown already used for "goal" (Field's `suggestions` prop), so these stay
+// quick-pick options without boxing the person into only what's listed.
+const EXCUSE_SUGGESTIONS = [
+  "I don't have enough time",
+  "I lose motivation after a few weeks",
+  "I get bored doing the same routine",
+  "I don't know what I'm doing at the gym",
+  "I get sore or injured and stop",
+  "Work and family take priority",
+];
+const ENJOY_SUGGESTIONS = [
+  "Weightlifting", "Running", "Cycling", "Swimming", "Group classes", "Yoga", "Bodyweight movements", "Sports",
+];
+const DISLIKE_SUGGESTIONS = [
+  "Running", "Burpees", "Heavy barbell squats", "Early morning workouts", "Long cardio sessions", "Crowded gyms",
+];
+
 const HOME_EQUIPMENT_OPTIONS = [
   { id: "barbell", label: "Barbell & plates" },
   { id: "dumbbells", label: "Dumbbells" },
@@ -443,7 +463,7 @@ const buildPrompt = (data) => `Create a personalized 8-week fitness plan for:
 Goal: ${data.goal}
 Specific target: ${data.target || "Not specified"}
 Days per week: ${data.days}
-Preferred training days: ${data.specificDays || "Flexible — assign optimal days"}
+Preferred training days: ${data.specificDays && data.specificDays.length > 0 ? data.specificDays.join(", ") : "Flexible, assign optimal days"}
 Minutes per session: ${data.time}
 Preferred training time: ${data.trainTime}
 Fitness level: ${data.level}
@@ -601,7 +621,7 @@ const classifyGradeFix = (fix) => {
 
 // Add new terms here — { pattern: RegExp (global, case-insensitive), definition: one sentence }.
 const GLOSSARY_TERMS = [
-  { id: "rir", pattern: /\bRIR\b/gi, definition: "Reps in reserve — how many more reps you could still do before hitting failure." },
+  { id: "rir", pattern: /\bRIR\b/gi, definition: "Reps in reserve: how many more reps you could still do before hitting failure." },
   { id: "progressive-overload", pattern: /\bprogressive overload\b/gi, definition: "Gradually increasing weight, reps, or sets over time so your muscles keep adapting." },
   { id: "failure", pattern: /\btrain(?:ing)? to failure\b/gi, definition: "Doing reps until you physically can't complete another one with good form." },
   { id: "mechanical-drop-set", pattern: /\bmechanical drop sets?\b/gi, definition: "Switching to an easier variation of the same exercise right after failure, instead of just lowering the weight." },
@@ -609,11 +629,11 @@ const GLOSSARY_TERMS = [
   { id: "rest-pause-set", pattern: /\brest-pause sets?\b/gi, definition: "Pausing briefly after near-failure, then squeezing out a few more reps with the same weight." },
   { id: "myo-reps", pattern: /\bmyo-?reps\b/gi, definition: "One hard set followed by short rest-pause mini-sets to extend muscle work with less total volume." },
   { id: "superset", pattern: /\bsupersets?\b/gi, definition: "Two exercises performed back-to-back with no rest in between." },
-  { id: "deload", pattern: /\bdeloads?\b/gi, definition: "A planned lighter week — less weight or volume — that lets your body recover before pushing hard again." },
+  { id: "deload", pattern: /\bdeloads?\b/gi, definition: "A planned lighter week (less weight or volume) that lets your body recover before pushing hard again." },
   { id: "intensification", pattern: /\bintensification\b/gi, definition: "Techniques like drop sets or rest-pause that make a set harder without adding more sets." },
   { id: "connective-tissue-tolerance", pattern: /\bconnective tissue tolerance\b/gi, definition: "How much stress your tendons and ligaments can handle before they need extra recovery time." },
-  { id: "form-focus", pattern: /\bform focus\b/gi, definition: "Prioritize clean technique over intensity — these sets aren't meant to feel hard yet." },
-  { id: "light-effort", pattern: /\blight effort\b/gi, definition: "Keep these sets comfortably easy — building the movement pattern matters more than intensity here." },
+  { id: "form-focus", pattern: /\bform focus\b/gi, definition: "Prioritize clean technique over intensity. These sets aren't meant to feel hard yet." },
+  { id: "light-effort", pattern: /\blight effort\b/gi, definition: "Keep these sets comfortably easy. Building the movement pattern matters more than intensity here." },
 ];
 const GLOSSARY_REGEX = new RegExp(GLOSSARY_TERMS.map(t => t.pattern.source).join("|"), "gi");
 const findGlossaryTerm = (matchText) =>
@@ -732,17 +752,17 @@ const getExerciseRecommendation = (checkins, day, exerciseName, repsStr) => {
 
 const RECOMMENDATION_TONE = { progress: "accent", maintain: "cool", deload: "warm" };
 const RECOMMENDATION_LABEL = {
-  progress: (r) => `↑ Progress${r.weightSuggestion ? ` — try ${r.weightSuggestion}kg` : " — add a rep next time"}`,
+  progress: (r) => `↑ Progress${r.weightSuggestion ? `: try ${r.weightSuggestion}kg` : ": add a rep next time"}`,
   maintain: () => "→ Maintain",
-  deload: (r) => `↓ Deload${r.weightSuggestion ? ` — try ${r.weightSuggestion}kg` : " — ease up next session"}`,
+  deload: (r) => `↓ Deload${r.weightSuggestion ? `: try ${r.weightSuggestion}kg` : ": ease up next session"}`,
 };
 
 const LANDING_PREVIEW_EXERCISES = [
   { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead.", reco: { level: "progress", weightSuggestion: 25 } },
-  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back — matches the mild scoliosis note you gave.", reco: { level: "maintain" } },
-  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control — this is what actually builds shoulder width.", reco: { level: "deload", weightSuggestion: 9 } },
+  { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back, matching the mild scoliosis note you gave.", reco: { level: "maintain" } },
+  { name: "Cable Lateral Raise", sets: "3", reps: "12-15", rest: "60s", effort: "1-2 RIR", note: "Light weight, full control. This is what actually builds shoulder width.", reco: { level: "deload", weightSuggestion: 9 } },
   { name: "Overhead Cable Extension", sets: "2", reps: "15", rest: "60s", effort: "Train to failure", note: "Replaces the skull crusher you said caused elbow pain.", reco: { level: "progress", weightSuggestion: 17.5 } },
-  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back — keeps shoulders balanced against all the pressing.", reco: { level: "maintain" } },
+  { name: "Cable Face Pull", sets: "2", reps: "15", rest: "45s", effort: "2 RIR", note: "Rear delts and upper back, keeping shoulders balanced against all the pressing.", reco: { level: "maintain" } },
 ];
 const LANDING_PREVIEW_FIRST_EFFORT_INDICES = getFirstEffortIndices(LANDING_PREVIEW_EXERCISES);
 
@@ -856,7 +876,7 @@ const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentCh
       {error && <p className="equip-error">{error}</p>}
       {location === "home_gym" && (
         <>
-          <p className="equip-hint">Select what you have at home — your plan will only use these.</p>
+          <p className="equip-hint">Select what you have at home. Your plan will only use these.</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             {HOME_EQUIPMENT_OPTIONS.map(eq => {
               const isSelected = selected.includes(eq.id);
@@ -896,7 +916,7 @@ export default function FitnessPlanGenerator() {
   const [justUnlocked, setJustUnlocked] = useState(false); // shows a one-time post-purchase confirmation banner
 
   const [form, setForm] = useState({
-    goal: "", target: "", days: "4", specificDays: "", time: "45", trainTime: "morning",
+    goal: "", target: "", days: "4", specificDays: [], time: "45", trainTime: "morning",
     level: "beginner", age: "", excuse: "", pastAttempts: "",
     enjoy: "", dislike: "", injuries: "", equipment: [], equipmentLocation: "",
     otherActivity: ""
@@ -907,7 +927,7 @@ export default function FitnessPlanGenerator() {
   const [mode, setMode] = useState("generate"); // "generate" | "grade"
   const [routineText, setRoutineText] = useState("");
   const [gradeInputMode, setGradeInputMode] = useState("template"); // "template" | "text"
-  const [templateRows, setTemplateRows] = useState([{ name: "", sets: "", reps: "", effort: "" }]);
+  const [templateDays, setTemplateDays] = useState([{ day: "Day 1", exercises: [{ name: "", sets: "", reps: "", effort: "" }] }]);
   const [grading, setGrading] = useState(false);
   const [gradeResult, setGradeResult] = useState(null);
   const [gradeError, setGradeError] = useState("");
@@ -1015,7 +1035,7 @@ export default function FitnessPlanGenerator() {
           });
           loadProfile();
         } else {
-          setError("Your plan draft expired after 24 hours and couldn't be recovered — please generate a new one.");
+          setError("Your plan draft expired after 24 hours and couldn't be recovered. Please generate a new one.");
         }
         // Only clear the draft once it's been migrated or confirmed expired — never on
         // failure below, so a transient error (or this effect firing against stale profile
@@ -1134,6 +1154,10 @@ export default function FitnessPlanGenerator() {
     if (fieldErrors[e.target.name]) setFieldErrors(p => ({ ...p, [e.target.name]: undefined }));
   };
   const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
+  const toggleSpecificDay = (day) => setForm(p => ({
+    ...p,
+    specificDays: p.specificDays.includes(day) ? p.specificDays.filter(d => d !== day) : [...p.specificDays, day],
+  }));
   const handleEquipmentLocation = (loc) => {
     setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
     if (fieldErrors.equipmentLocation) setFieldErrors(p => ({ ...p, equipmentLocation: undefined }));
@@ -1160,7 +1184,7 @@ export default function FitnessPlanGenerator() {
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) { setError(""); return; }
     if (atGenerationLimit) { setError("You've used your included generations."); return; }
-    if (freeActionBlocked) { setError(`You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"} — unlock to keep going.`); return; }
+    if (freeActionBlocked) { setError(`You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"}. Unlock to keep going.`); return; }
     setError(""); setLoading(true); setPlan(null);
     try {
       const res = await fetch("/api/generate-plan", {
@@ -1170,7 +1194,7 @@ export default function FitnessPlanGenerator() {
       });
       if (res.status === 402) {
         const errBody = await res.json().catch(() => ({}));
-        setError(errBody.error || "You've used your free action — unlock to keep going.");
+        setError(errBody.error || "You've used your free action. Unlock to keep going.");
         loadProfile();
         return;
       }
@@ -1207,30 +1231,53 @@ export default function FitnessPlanGenerator() {
   // Template-mode rows serialize into the same plain-text shape the free-text path
   // already produces, so grade-workout.js (and buildGradePrompt) never need to know
   // which input mode was used.
-  const serializeTemplateRows = (rows) =>
-    rows
-      .filter(r => r.name.trim())
-      .map(r => {
-        const details = [r.sets && `${r.sets} sets`, r.reps && `${r.reps} reps`, r.effort].filter(Boolean).join(", ");
-        return details ? `${r.name.trim()}: ${details}` : r.name.trim();
+  // Template-mode days serialize into the same plain-text shape the free-text path
+  // already produces (day header, then one line per exercise), so grade-workout.js
+  // (and buildGradePrompt) never need to know which input mode was used.
+  const serializeTemplateDays = (days) =>
+    days
+      .map(d => {
+        const exerciseLines = d.exercises
+          .filter(r => r.name.trim())
+          .map(r => {
+            const details = [r.sets && `${r.sets} sets`, r.reps && `${r.reps} reps`, r.effort].filter(Boolean).join(", ");
+            return details ? `${r.name.trim()}: ${details}` : r.name.trim();
+          });
+        return exerciseLines.length > 0 ? `${d.day.trim() || "Day"}:\n${exerciseLines.join("\n")}` : null;
       })
-      .join("\n");
+      .filter(Boolean)
+      .join("\n\n");
 
-  const updateTemplateRow = (index, field, value) => {
-    setTemplateRows(rows => rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  const updateTemplateDayName = (dayIndex, value) => {
+    setTemplateDays(days => days.map((d, i) => (i === dayIndex ? { ...d, day: value } : d)));
   };
-  const addTemplateRow = () => setTemplateRows(rows => [...rows, { name: "", sets: "", reps: "", effort: "" }]);
-  const removeTemplateRow = (index) => setTemplateRows(rows => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+  const updateTemplateExercise = (dayIndex, exIndex, field, value) => {
+    setTemplateDays(days => days.map((d, i) => (
+      i !== dayIndex ? d : { ...d, exercises: d.exercises.map((r, j) => (j === exIndex ? { ...r, [field]: value } : r)) }
+    )));
+  };
+  const addTemplateExercise = (dayIndex) => {
+    setTemplateDays(days => days.map((d, i) => (
+      i !== dayIndex ? d : { ...d, exercises: [...d.exercises, { name: "", sets: "", reps: "", effort: "" }] }
+    )));
+  };
+  const removeTemplateExercise = (dayIndex, exIndex) => {
+    setTemplateDays(days => days.map((d, i) => (
+      i !== dayIndex || d.exercises.length <= 1 ? d : { ...d, exercises: d.exercises.filter((_, j) => j !== exIndex) }
+    )));
+  };
+  const addTemplateDay = () => setTemplateDays(days => [...days, { day: `Day ${days.length + 1}`, exercises: [{ name: "", sets: "", reps: "", effort: "" }] }]);
+  const removeTemplateDay = (dayIndex) => setTemplateDays(days => (days.length > 1 ? days.filter((_, i) => i !== dayIndex) : days));
 
   const gradeWorkout = async () => {
-    const routineTextToGrade = gradeInputMode === "template" ? serializeTemplateRows(templateRows) : routineText;
+    const routineTextToGrade = gradeInputMode === "template" ? serializeTemplateDays(templateDays) : routineText;
     if (!routineTextToGrade.trim()) {
       setGradeError(gradeInputMode === "template" ? "Add at least one exercise with a name." : "Paste or describe your current routine first.");
       return;
     }
     if (!form.equipmentLocation) { setFieldErrors({ equipmentLocation: "Select where you train." }); return; }
     if (atGenerationLimit) { setGradeError("You've used your included generations."); return; }
-    if (freeActionBlocked) { setGradeError(`You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock to keep going.`); return; }
+    if (freeActionBlocked) { setGradeError(`You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"}. Unlock to keep going.`); return; }
     setGradeError(""); setGrading(true); setGradeResult(null);
     try {
       const res = await fetch("/api/grade-workout", {
@@ -1240,7 +1287,7 @@ export default function FitnessPlanGenerator() {
       });
       if (res.status === 402) {
         const errBody = await res.json().catch(() => ({}));
-        setGradeError(errBody.error || "You've used your free action — unlock to keep going.");
+        setGradeError(errBody.error || "You've used your free action. Unlock to keep going.");
         loadProfile();
         return;
       }
@@ -1481,10 +1528,10 @@ export default function FitnessPlanGenerator() {
 
         <div className="landing-main">
           <h1 className="landing-title">
-            A fitness plan <span className="landing-title-accent">built around your life</span> — not a generic template
+            A fitness plan <span className="landing-title-accent">built around your life</span>, not a generic template
           </h1>
           <p className="landing-sub">
-            Tell it your goals, equipment, injuries, and schedule. FitPlan AI's engine, purpose-built for fitness, generates a real 8-week plan around them — then adjusts it every week based on what you actually did.
+            Tell it your goals, equipment, injuries, and schedule. FitPlan AI's engine, purpose-built for fitness, generates a real 8-week plan around them, then adjusts it every week based on what you actually did.
           </p>
           <div className="landing-cta">
             <button className="btn btn-solid" onClick={() => { setAuthMode("signup"); setPage("app"); }}>
@@ -1502,7 +1549,7 @@ export default function FitnessPlanGenerator() {
               </div>
               <div>
                 <div className="landing-feature-title">Actually personalized</div>
-                <div className="landing-feature-body">Built around your real equipment, injuries, past failed attempts, and schedule — not a one-size-fits-all template.</div>
+                <div className="landing-feature-body">Built around your real equipment, injuries, past failed attempts, and schedule, not a one-size-fits-all template.</div>
               </div>
             </div>
             <div className="landing-feature">
@@ -1511,7 +1558,7 @@ export default function FitnessPlanGenerator() {
               </div>
               <div>
                 <div className="landing-feature-title">Adjusts every week</div>
-                <div className="landing-feature-body">Weekly check-ins tell it what you actually did — and it adapts next week's plan, something a static chat conversation can't do on its own.</div>
+                <div className="landing-feature-body">Weekly check-ins tell it what you actually did, and it adapts next week's plan, something a static chat conversation can't do on its own.</div>
               </div>
             </div>
             <div className="landing-feature">
@@ -1529,7 +1576,7 @@ export default function FitnessPlanGenerator() {
               </div>
               <div>
                 <div className="landing-feature-title">Real feedback, not praise</div>
-                <div className="landing-feature-body">Paste or describe your current routine and get specific fixes — goal alignment, injury safety, and more — not generic encouragement.</div>
+                <div className="landing-feature-body">Paste or describe your current routine and get specific fixes: goal alignment, injury safety, and more, not generic encouragement.</div>
               </div>
             </div>
             <div className="landing-feature">
@@ -1538,7 +1585,7 @@ export default function FitnessPlanGenerator() {
               </div>
               <div>
                 <div className="landing-feature-title">Knows when to add weight</div>
-                <div className="landing-feature-body">Log your weight and reps each week and get an automatic progress, maintain, or deload call — not a static plan that never adapts.</div>
+                <div className="landing-feature-body">Log your weight and reps each week and get an automatic progress, maintain, or deload call, not a static plan that never adapts.</div>
               </div>
             </div>
           </div>
@@ -1554,7 +1601,7 @@ export default function FitnessPlanGenerator() {
                 ))}
               </div>
               <div className="landing-preview-head">
-                <span style={{ fontWeight: 800, fontSize: "0.85rem" }}>MONDAY — Push Day: Chest, Shoulders &amp; Triceps</span>
+                <span style={{ fontWeight: 800, fontSize: "0.85rem" }}>MONDAY · Push Day: Chest, Shoulders &amp; Triceps</span>
                 <span style={{ fontSize: "0.75rem" }}>50 min</span>
               </div>
               <div className="landing-preview-body">
@@ -1589,7 +1636,7 @@ export default function FitnessPlanGenerator() {
                 })}
                 <div className="info-box info-box-cool" style={{ marginTop: "0.25rem" }}>
                   <span className="info-box-label">Cool-down</span>
-                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min static stretching — chest doorway stretch, cross-body shoulder stretch</p>
+                  <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem" }}>5 min static stretching: chest doorway stretch, cross-body shoulder stretch</p>
                 </div>
               </div>
             </div>
@@ -1631,7 +1678,7 @@ export default function FitnessPlanGenerator() {
                 <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Knows when to push or pull back</div>
                 <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Compares this week's reps and weight against target ranges and calls a clear progress, maintain, or deload, no guesswork.</div>
                 <div className="exercise-reco" style={{ margin: 0, display: "inline-block", background: GRADE_TONE_STYLES.accent.bg, color: GRADE_TONE_STYLES.accent.text }}>
-                  ↑ Progress — try 25kg
+                  ↑ Progress: try 25kg
                 </div>
               </div>
             </div>
@@ -1641,7 +1688,7 @@ export default function FitnessPlanGenerator() {
             <p className="landing-eyebrow">Pricing</p>
             <div className="landing-pricing">
               <div className="landing-pricing-amount">€19 <span className="landing-pricing-amount-unit">one-time</span></div>
-              <p className="landing-pricing-detail">= <strong>3 credits</strong> — each one good for a full plan generation or a workout grade, spend them however you like.</p>
+              <p className="landing-pricing-detail">= <strong>3 credits</strong>, each one good for a full plan generation or a workout grade. Spend them however you like.</p>
               <p className="landing-pricing-extra">Need more later? Extra credits are €7 each.</p>
             </div>
           </div>
@@ -1745,7 +1792,7 @@ export default function FitnessPlanGenerator() {
           {plan && !profile?.has_paid && (
             <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
               <span style={{ fontSize: "0.68rem", color: "var(--faint)", textAlign: "right", maxWidth: 270, lineHeight: 1.3 }}>
-                Your plan is saved in your browser for 24 hours. €19 unlocks 3 plan generations or routine grades — save permanently and access anytime.
+                Your plan is saved in your browser for 24 hours. €19 unlocks 3 plan generations or routine grades, and saves it permanently so you can access it anytime.
               </span>
               <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-solid">
                 {checkingOut === "unlock" ? "Redirecting..." : (
@@ -1754,7 +1801,7 @@ export default function FitnessPlanGenerator() {
                       <rect x="5" y="11" width="14" height="10" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
                     </svg>
-                    Unlock this plan — €19
+                    Unlock this plan for €19
                   </>
                 )}
               </button>
@@ -1793,7 +1840,7 @@ export default function FitnessPlanGenerator() {
       {justUnlocked && (
         <div style={{ maxWidth: 720, margin: "0.85rem auto 0", padding: "0 1.25rem" }}>
           <div className="info-box info-box-cool" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
-            <p style={{ margin: 0 }}>🎉 You're unlocked! Your €19 covers <strong>3 plan generations or routine grades</strong> total — use them whenever you're ready.</p>
+            <p style={{ margin: 0 }}>🎉 You're unlocked! Your €19 covers <strong>3 plan generations or routine grades</strong> total. Use them whenever you're ready.</p>
             <span onClick={() => setJustUnlocked(false)} style={{ cursor: "pointer", fontWeight: 700, color: "var(--accent-deep)", flexShrink: 0 }}>×</span>
           </div>
         </div>
@@ -1847,29 +1894,47 @@ export default function FitnessPlanGenerator() {
             <div className="form-card">
               <Divider label="Your Goal" />
               <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" error={fieldErrors.goal} suggestions={["Build muscle", "Lose fat", "Build muscle while losing fat", "Get stronger", "Improve general fitness and health", "Improve endurance / cardio", "Train for a sport or event"]} />
-              <Field label="Specific target (optional)" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better — give us a number if you can." />
+              <Field label="Specific target (optional)" name="target" value={form.target} onChange={handleChange} placeholder="e.g. Lose 5kg, gain visible arm muscle, run 5km" hint="The more concrete the better. Give us a number if you can." />
 
               <Divider label="Your Schedule" />
-              <Field label="Other physical activity or sports" name="otherActivity" value={form.otherActivity} onChange={handleChange} placeholder="e.g. Football on Tuesdays and Thursdays, badminton twice a week" hint="Include anything physical — this prevents the plan from clashing with your existing activity." />
+              <Field label="Other physical activity or sports" name="otherActivity" value={form.otherActivity} onChange={handleChange} placeholder="e.g. Football on Tuesdays and Thursdays, badminton twice a week" hint="Include anything physical. This prevents the plan from clashing with your existing activity." />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.85rem" }}>
                 <Field label="Gym days per week" name="days" value={form.days} onChange={handleChange} as="select" options={[2,3,4,5,6].map(n => ({ value: String(n), label: `${n} days` }))} />
                 <Field label="Minutes per session" name="time" value={form.time} onChange={handleChange} type="number" placeholder="e.g. 45" />
                 <Field label="Preferred time" name="trainTime" value={form.trainTime} onChange={handleChange} as="select" options={[{ value: "morning", label: "Morning" }, { value: "afternoon", label: "Afternoon" }, { value: "evening", label: "Evening" }, { value: "flexible", label: "Flexible" }]} />
               </div>
-              <Field label="Specific days? (optional)" name="specificDays" value={form.specificDays} onChange={handleChange} placeholder="e.g. Monday, Wednesday, Friday — leave blank to let the plan decide" hint="Only fill this in if you have fixed days." />
+              <div className="field">
+                <label className="field-label">Specific days? (optional)</label>
+                <p className="field-hint">Only pick days if you have fixed ones. Leave blank to let the plan decide.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {DAYS_OF_WEEK.map(day => {
+                    const isSelected = form.specificDays.includes(day);
+                    return (
+                      <button key={day} type="button" onClick={() => toggleSpecificDay(day)} className={`equip-chip${isSelected ? " is-selected" : ""}`}>
+                        {isSelected ? "✓ " : ""}{day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
                 <Field label="Age" name="age" value={form.age} onChange={handleChange} type="number" placeholder="e.g. 28" error={fieldErrors.age} />
-                <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
+                <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner (just starting out)" }, { value: "intermediate", label: "Intermediate (some experience)" }, { value: "advanced", label: "Advanced (trained consistently)" }]} />
               </div>
 
               <Divider label="Your Challenges" />
               <Field label="What's your biggest excuse or challenge?" name="excuse" value={form.excuse} onChange={handleChange} placeholder="e.g. I get home tired at 6pm and plain lifting bores me" as="textarea" error={fieldErrors.excuse} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", margin: "-0.6rem 0 1.1rem" }}>
+                {EXCUSE_SUGGESTIONS.map(s => (
+                  <button key={s} type="button" onClick={() => setForm(p => ({ ...p, excuse: s }))} className="equip-chip">{s}</button>
+                ))}
+              </div>
               <Field label="Have you tried a fitness plan before? What went wrong?" name="pastAttempts" value={form.pastAttempts} onChange={handleChange} placeholder="e.g. I quit after 2 weeks because it felt too repetitive" as="textarea" hint="This helps build a plan that avoids your past pitfalls." />
 
               <Divider label="Your Preferences" />
-              <Field label="Exercises or activities you enjoy" name="enjoy" value={form.enjoy} onChange={handleChange} placeholder="e.g. Group classes, cycling, bodyweight movements" />
-              <Field label="Exercises you dislike or want to avoid" name="dislike" value={form.dislike} onChange={handleChange} placeholder="e.g. Running, heavy barbell squats" />
-              <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues — or 'none'" />
+              <Field label="Exercises or activities you enjoy" name="enjoy" value={form.enjoy} onChange={handleChange} placeholder="e.g. Group classes, cycling, bodyweight movements" suggestions={ENJOY_SUGGESTIONS} />
+              <Field label="Exercises you dislike or want to avoid" name="dislike" value={form.dislike} onChange={handleChange} placeholder="e.g. Running, heavy barbell squats" suggestions={DISLIKE_SUGGESTIONS} />
+              <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues, or 'none'" />
 
               <Divider label="Your Equipment" />
               <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} error={fieldErrors.equipmentLocation} />
@@ -1877,11 +1942,11 @@ export default function FitnessPlanGenerator() {
               {error && <p className="form-error">{error}</p>}
               {atGenerationLimit ? (
                 <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans — buy another for €7`}
+                  {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans. Buy another for €7`}
                 </button>
               ) : freeActionBlocked ? (
                 <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"} — unlock for €19 (3 plan generations or grades)`}
+                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "grade" ? "routine grade" : "plan"}. Unlock for €19 (3 plan generations or grades)`}
                 </button>
               ) : (
                 <button onClick={generate} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
@@ -1901,36 +1966,47 @@ export default function FitnessPlanGenerator() {
                 </button>
               </div>
               {gradeInputMode === "text" ? (
-                <Field label="Describe or paste your current routine" name="routineText" value={routineText} onChange={e => setRoutineText(e.target.value)} placeholder={"e.g. Monday: Bench press 3x10, Lat pulldown 3x12...\nWednesday: Squat 3x8, Leg curl 3x12..."} as="textarea" hint="List your days, exercises, sets and reps as best you can — rough is fine." />
+                <Field label="Describe or paste your current routine" name="routineText" value={routineText} onChange={e => setRoutineText(e.target.value)} placeholder={"e.g. Monday: Bench press 3x10, Lat pulldown 3x12...\nWednesday: Squat 3x8, Leg curl 3x12..."} as="textarea" hint="List your days, exercises, sets and reps as best you can. Rough is fine." />
               ) : (
                 <div>
-                  {templateRows.map((row, i) => (
-                    <div key={i} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", marginBottom: "0.6rem", flexWrap: "wrap" }}>
-                      <div style={{ flex: 2, minWidth: 140 }}>
-                        <Field label={i === 0 ? "Exercise" : ""} name={`ex-name-${i}`} value={row.name} onChange={e => updateTemplateRow(i, "name", e.target.value)} placeholder="e.g. Bench press" />
+                  {templateDays.map((d, di) => (
+                    <div key={di} style={{ marginBottom: "1.1rem", paddingBottom: "1.1rem", borderBottom: di < templateDays.length - 1 ? "1px solid var(--line-soft)" : "none" }}>
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.7rem" }}>
+                        <input type="text" value={d.day} onChange={e => updateTemplateDayName(di, e.target.value)} className="field-input" style={{ maxWidth: 160, fontWeight: 700 }} />
+                        {templateDays.length > 1 && (
+                          <button type="button" onClick={() => removeTemplateDay(di)} className="btn btn-ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}>Remove day</button>
+                        )}
                       </div>
-                      <div style={{ flex: 1, minWidth: 70 }}>
-                        <Field label={i === 0 ? "Sets" : ""} name={`ex-sets-${i}`} value={row.sets} onChange={e => updateTemplateRow(i, "sets", e.target.value)} type="number" placeholder="3" />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 90 }}>
-                        <Field label={i === 0 ? "Reps" : ""} name={`ex-reps-${i}`} value={row.reps} onChange={e => updateTemplateRow(i, "reps", e.target.value)} placeholder="8-12" />
-                      </div>
-                      <div style={{ flex: 1.4, minWidth: 130 }}>
-                        <Field label={i === 0 ? "Effort" : ""} name={`ex-effort-${i}`} value={row.effort} onChange={e => updateTemplateRow(i, "effort", e.target.value)} as="select" options={EFFORT_OPTIONS} />
-                      </div>
-                      {templateRows.length > 1 && (
-                        <button type="button" onClick={() => removeTemplateRow(i)} className="btn btn-ghost" style={{ padding: "0.5rem 0.6rem", fontSize: "0.8rem", flexShrink: 0 }} aria-label="Remove exercise">✕</button>
-                      )}
+                      {d.exercises.map((row, ei) => (
+                        <div key={ei} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", marginBottom: "0.6rem", flexWrap: "wrap" }}>
+                          <div style={{ flex: 2, minWidth: 140 }}>
+                            <Field label={ei === 0 ? "Exercise" : ""} name={`ex-name-${di}-${ei}`} value={row.name} onChange={e => updateTemplateExercise(di, ei, "name", e.target.value)} placeholder="e.g. Bench press" />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 70 }}>
+                            <Field label={ei === 0 ? "Sets" : ""} name={`ex-sets-${di}-${ei}`} value={row.sets} onChange={e => updateTemplateExercise(di, ei, "sets", e.target.value)} type="number" placeholder="3" />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 90 }}>
+                            <Field label={ei === 0 ? "Reps" : ""} name={`ex-reps-${di}-${ei}`} value={row.reps} onChange={e => updateTemplateExercise(di, ei, "reps", e.target.value)} placeholder="8-12" />
+                          </div>
+                          <div style={{ flex: 1.4, minWidth: 130 }}>
+                            <Field label={ei === 0 ? "Effort" : ""} name={`ex-effort-${di}-${ei}`} value={row.effort} onChange={e => updateTemplateExercise(di, ei, "effort", e.target.value)} as="select" options={EFFORT_OPTIONS} />
+                          </div>
+                          {d.exercises.length > 1 && (
+                            <button type="button" onClick={() => removeTemplateExercise(di, ei)} className="btn btn-ghost" style={{ padding: "0.5rem 0.6rem", fontSize: "0.8rem", flexShrink: 0 }} aria-label="Remove exercise">✕</button>
+                          )}
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addTemplateExercise(di)} className="btn btn-ghost" style={{ fontSize: "0.82rem" }}>+ Add exercise</button>
                     </div>
                   ))}
-                  <button type="button" onClick={addTemplateRow} className="btn btn-ghost" style={{ fontSize: "0.82rem" }}>+ Add exercise</button>
+                  <button type="button" onClick={addTemplateDay} className="btn btn-tint" style={{ fontSize: "0.82rem" }}>+ Add day</button>
                 </div>
               )}
 
               <Divider label="Your Profile" />
               <Field label="What's your main fitness goal?" name="goal" value={form.goal} onChange={handleChange} placeholder="e.g. Build muscle while losing body fat" suggestions={["Build muscle", "Lose fat", "Build muscle while losing fat", "Get stronger", "Improve general fitness and health", "Improve endurance / cardio", "Train for a sport or event"]} />
-              <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner — just starting out" }, { value: "intermediate", label: "Intermediate — some experience" }, { value: "advanced", label: "Advanced — trained consistently" }]} />
-              <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues — or 'none'" />
+              <Field label="Fitness level" name="level" value={form.level} onChange={handleChange} as="select" options={[{ value: "beginner", label: "Beginner (just starting out)" }, { value: "intermediate", label: "Intermediate (some experience)" }, { value: "advanced", label: "Advanced (trained consistently)" }]} />
+              <Field label="Injuries or physical limitations" name="injuries" value={form.injuries} onChange={handleChange} placeholder="e.g. Left knee pain, lower back issues, or 'none'" />
 
               <Divider label="Your Equipment" />
               <EquipmentSelector location={form.equipmentLocation} onLocationChange={handleEquipmentLocation} selected={form.equipment} onEquipmentChange={handleEquipment} error={fieldErrors.equipmentLocation} />
@@ -1938,11 +2014,11 @@ export default function FitnessPlanGenerator() {
               {gradeError && <p className="form-error">{gradeError}</p>}
               {atGenerationLimit ? (
                 <button onClick={() => startCheckout("extra_generation")} disabled={checkingOut === "extra_generation"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans — buy another for €7`}
+                  {checkingOut === "extra_generation" ? "Redirecting..." : `You've used your ${totalAllowedGenerations} included plans. Buy another for €7`}
                 </button>
               ) : freeActionBlocked ? (
                 <button onClick={() => startCheckout("unlock")} disabled={checkingOut === "unlock"} className="btn btn-cool-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"} — unlock for €19 (3 plan generations or grades)`}
+                  {checkingOut === "unlock" ? "Redirecting..." : `You've used your free ${profile.free_action_used === "plan" ? "plan generation" : "routine grade"}. Unlock for €19 (3 plan generations or grades)`}
                 </button>
               ) : (
                 <button onClick={gradeWorkout} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
@@ -2216,11 +2292,11 @@ export default function FitnessPlanGenerator() {
         <div className="checkin-overlay">
           <div className="checkin-card">
             <h3 className="checkin-title">Week {currentWeek} check-in</h3>
-            <p className="checkin-sub">Everything's checked as done by default — uncheck anything you skipped and tell us why. For anything you did, log the weight and reps you averaged across working sets — it drives next time's progress suggestion.</p>
+            <p className="checkin-sub">Everything's checked as done by default. Uncheck anything you skipped and tell us why. For anything you did, log the weight and reps you averaged across working sets, since it drives next time's progress suggestion.</p>
 
             {plan.workouts.map((w, wi) => (
               <div key={wi} className="checkin-day">
-                <div className="checkin-day-title">{w.day} — {w.name}</div>
+                <div className="checkin-day-title">{w.day} · {w.name}</div>
                 {w.exercises.map((ex, ei) => {
                   const key = `${w.day}::${ex.name}`;
                   const done = !!checkInState[key];
@@ -2251,7 +2327,7 @@ export default function FitnessPlanGenerator() {
               </div>
             ))}
 
-            <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week — specific skip reasons are captured above, next to each exercise." />
+            <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week. Specific skip reasons are captured above, next to each exercise." />
 
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
               <button onClick={() => setShowCheckIn(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>

@@ -64,7 +64,7 @@ export const PrivacyPolicy = () => (
         <li><strong>Fitness information:</strong> the goals, schedule, equipment, and preferences you enter when generating a plan</li>
         <li><strong>Generated plans:</strong> the workout plans created for you, stored to your account</li>
       </ul>
-      We do not collect payment card details directly — payments are handled by third-party processors.
+      We do not collect payment card details directly. Payments are handled by third-party processors.
     </Section>
 
     <Section title="2. How We Use Your Information">
