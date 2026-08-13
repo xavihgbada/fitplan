@@ -273,6 +273,12 @@ const exportToPDF = async (plan) => {
   doc.save(`${plan.title.replace(/[^a-z0-9]/gi, "_")}.pdf`);
 };
 
+// Shared verbatim across every prompt that produces free text (plan, adjust, grade) —
+// applies to every free-text field each one generates (motivation_strategy,
+// weekly_checkin, nutrition tips, exercise notes, grader strengths/fixes, adjust-plan
+// reasoning), not just one field, so it lives once and gets interpolated everywhere.
+const OUTPUT_STYLE_RULE = `OUTPUT STYLE, THE MOST IMPORTANT FORMATTING RULE IN THIS PROMPT: do not use the em dash character (—) anywhere in your response, in any field, ever, not even once. If you would normally reach for one, rewrite the sentence with a comma, period, semicolon, or parentheses instead. Also avoid "not just X, but Y" constructions, and avoid starting sentences with "Remember,". Write plainly, like a knowledgeable coach texting a client, not like an AI assistant summarizing something. Before you finish, check your own output for the — character and rewrite any sentence that has one.`;
+
 // Matches the effort-label vocabulary the AI itself is instructed to use (see EFFORT
 // TARGETS in SYSTEM_PROMPT) — numeric RIR values plus the qualitative labels used for
 // beginner technique-priority work.
@@ -333,6 +339,8 @@ const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized wor
 
 Be specific. Every exercise must have sets, reps, and rest. Never include exercises the person dislikes. Directly address their past failures in the motivation strategy. Adapt everything to their injuries and limitations. Keep every nutrition tip to a single concise sentence, and keep motivation_strategy and weekly_checkin to 1-2 sentences each — none of these fields should ever become a paragraph.
 
+${OUTPUT_STYLE_RULE}
+
 EXERCISE COUNT — CRITICAL: scale exercises per workout to the stated minutes per session, not a fixed number — a 30-minute session and a 90-minute session should look very different:
 - Up to 30 min: 3-4 exercises
 - 31-45 min: 4-6 exercises
@@ -381,7 +389,9 @@ MUSCLE GROUP ACCURACY — never mislabel muscle targets:
 - Rear delt exercises: face pulls, reverse flies, bent-over lateral raises, barbell upright rows
 - Barbell upright rows target the rear delts and upper traps — never label them as a medial delt exercise
 - Front delt exercises: overhead press, front raises, incline dumbbell press
-- Always verify that the exercise listed actually trains the muscle group stated`;
+- Always verify that the exercise listed actually trains the muscle group stated
+
+${OUTPUT_STYLE_RULE}`;
 
 const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitness plan based on a client's weekly check-in. Return ONLY a valid JSON object matching this exact structure — no markdown, no explanation:
 
@@ -405,6 +415,7 @@ const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitnes
 }
 
 ADJUSTMENT RULES:
+- ${OUTPUT_STYLE_RULE}
 - BREVITY — CRITICAL: keep motivation_strategy and weekly_checkin to 1-2 sentences each, and every nutrition tip to a single sentence, matching the brevity of the original plan. Do not expand these into paragraphs, even when explaining a change in detail — put detailed reasoning in the plan summary instead if needed.
 - If an exercise was completed and felt manageable, apply progressive overload: increase reps, sets, or note a weight increase — small increments only.
 - SKIP REASONS — CRITICAL: each skipped exercise now comes with its own specific reason. Respond to each one individually and appropriately, not with a generic swap:
@@ -423,7 +434,9 @@ ADJUSTMENT RULES:
 - SESSION BALANCE — CRITICAL: never let more than 2 exercises in a single session target the same primary muscle group, unless the original plan was an explicit specialization day. This matters most for low-frequency plans (2-3 days/week).
 - CORE/ABS — CRITICAL: keep core/abs volume concentrated into 2-4 training days with 1-2 exercises each (roughly 8-15 sets/week total) — do not spread it into a single token exercise on every day, which under-trains the muscle per session.
 - Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).
-- EXERCISE NAMING — CRITICAL: keep the same clean base-name format as the original plan — equipment + movement only (e.g. "Cable Lateral Raise", "Leg Extension Machine"), never grip/stance/tempo/setup detail folded into the name (that belongs in "note"). Do not rename any exercise that isn't being changed. If substituting a new exercise for a skipped one, name the replacement the same clean way. Exact name continuity across weeks matters for progress tracking, which compares exercise names as-is.`;
+- EXERCISE NAMING — CRITICAL: keep the same clean base-name format as the original plan — equipment + movement only (e.g. "Cable Lateral Raise", "Leg Extension Machine"), never grip/stance/tempo/setup detail folded into the name (that belongs in "note"). Do not rename any exercise that isn't being changed. If substituting a new exercise for a skipped one, name the replacement the same clean way. Exact name continuity across weeks matters for progress tracking, which compares exercise names as-is.
+
+${OUTPUT_STYLE_RULE}`;
 
 const buildPrompt = (data) => `Create a personalized 8-week fitness plan for:
 
@@ -502,6 +515,8 @@ const GRADE_SYSTEM_PROMPT = `You are an expert fitness coach reviewing a client'
   ]
 }
 
+${OUTPUT_STYLE_RULE}
+
 Return 0-5 fixes, ordered from most to least impactful — only flag genuine issues. A well-built routine with no significant problems should return fewer fixes, even zero, rather than padding to reach a minimum. Assign each fix a severity: "critical" (safety risk, or completely undermines the stated goal), "moderate" (meaningfully suboptimal but not dangerous), or "minor" (small polish/optimization, not worth much weight). Be specific and terse — one sentence per field, matching the direct style of a coach's note, not a paragraph. Never praise generically — every fix must point at something concrete in the routine as described.
 
 STRENGTHS — return 0-3 strengths, only for elements that are genuinely well-executed given the client's stated goal, level, injuries, and equipment (e.g. an appropriate progression scheme, balanced muscle coverage, rep ranges that match the goal, smart equipment substitutions, correct injury accommodation). Do not invent praise to fill the list — if nothing stands out, return an empty array. Be as specific and concrete as the fixes.
@@ -532,7 +547,9 @@ INJURY SAFETY — flag any exercise that loads or stresses the client's stated i
 - Name the specific exercise and the mechanism of concern (e.g. "back squat loads a flagged lower-back issue through spinal compression").
 - Suggest a genuinely different movement pattern that avoids that stress, not just a lighter version of the same lift.
 
-If the routine is described too vaguely to grade a specific rule, say so plainly in the summary rather than inventing detail that wasn't given.`;
+If the routine is described too vaguely to grade a specific rule, say so plainly in the summary rather than inventing detail that wasn't given.
+
+${OUTPUT_STYLE_RULE}`;
 
 const buildGradePrompt = (data, routineText) => `Review this client's current workout routine and identify what's wrong with it.
 
