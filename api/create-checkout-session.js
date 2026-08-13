@@ -37,7 +37,7 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-      success_url: `${req.headers.origin}/?checkout=success`,
+      success_url: `${req.headers.origin}/?checkout=success&type=${type}`,
       cancel_url: `${req.headers.origin}/?checkout=cancel`,
     });
     res.status(200).json({ url: session.url });
