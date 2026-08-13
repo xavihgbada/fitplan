@@ -1481,7 +1481,7 @@ export default function FitnessPlanGenerator() {
 
         <div className="landing-main">
           <h1 className="landing-title">
-            A fitness plan built around your life — not a generic template
+            A fitness plan <span className="landing-title-accent">built around your life</span> — not a generic template
           </h1>
           <p className="landing-sub">
             Tell it your goals, equipment, injuries, and schedule. FitPlan AI's engine, purpose-built for fitness, generates a real 8-week plan around them — then adjusts it every week based on what you actually did.
