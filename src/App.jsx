@@ -455,6 +455,7 @@ ADJUSTMENT RULES:
 - CORE/ABS — CRITICAL: keep core/abs volume concentrated into 2-4 training days with 1-2 exercises each (roughly 8-15 sets/week total) — do not spread it into a single token exercise on every day, which under-trains the muscle per session.
 - Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).
 - EXERCISE NAMING — CRITICAL: keep the same clean base-name format as the original plan — equipment + movement only (e.g. "Cable Lateral Raise", "Leg Extension Machine"), never grip/stance/tempo/setup detail folded into the name (that belongs in "note"). Do not rename any exercise that isn't being changed. If substituting a new exercise for a skipped one, name the replacement the same clean way. Exact name continuity across weeks matters for progress tracking, which compares exercise names as-is.
+- STREAK — if a current check-in streak is given below and it's 2 or more consecutive weeks, you may briefly acknowledge that consistency in motivation_strategy where it fits naturally. This never adds a sentence on top of the existing 1-2 sentence limit for that field, and isn't required every time. No streak given, or a streak under 2, means don't mention one at all.
 
 ${OUTPUT_STYLE_RULE}`;
 
@@ -482,7 +483,7 @@ Available equipment (ONLY use these): ${
 
 CRITICAL: Do not assign any exercise that requires equipment not listed above. Return only the JSON object.`;
 
-const buildAdjustPrompt = (plan, checkinsHistory) => {
+const buildAdjustPrompt = (plan, checkinsHistory, streak = 0) => {
   const latest = checkinsHistory[checkinsHistory.length - 1];
   return `Here is the client's current plan:
 ${JSON.stringify(plan)}
@@ -495,6 +496,7 @@ ${JSON.stringify(latest.completed_exercises)}
 
 Each exercise entry is either {"done": true} — completed as planned — or {"done": false, "reason": "..."} — skipped, with the client's own stated reason. Use these reasons individually per exercise, not as a general summary.
 General notes for the week (may be empty): ${latest.notes || "None"}
+${streak >= 2 ? `Current check-in streak: ${streak} consecutive weeks.` : ""}
 
 Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
 };
@@ -757,6 +759,35 @@ const RECOMMENDATION_LABEL = {
   deload: (r) => `↓ Deload${r.weightSuggestion ? `: try ${r.weightSuggestion}kg` : ": ease up next session"}`,
 };
 
+// Consecutive-week check-in streak, computed client-side from existing checkin rows
+// (no new table/column). A gap of more than 10 days between one check-in and the
+// next breaks the streak, but the check-in right after a gap still counts as week 1
+// of a new streak, not 0. Returns the CURRENT run length (since the last break), not
+// the longest run in the plan's history.
+const computeStreak = (checkins, planId) => {
+  const sorted = checkins
+    .filter(c => c.plan_id === planId)
+    .slice()
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  if (sorted.length === 0) return 0;
+  let streak = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const gapDays = (new Date(sorted[i].created_at) - new Date(sorted[i - 1].created_at)) / 86400000;
+    streak = gapDays <= 10 ? streak + 1 : 1;
+  }
+  return streak;
+};
+
+// Milestone thresholds for the streak badge row. Icons reuse plain emoji (the same
+// iconography already used throughout the app, e.g. the 🎉 purchase banner) rather
+// than pulling in an icon library for three static glyphs.
+const STREAK_BADGES = [
+  { weeks: 3, label: "3-Week Streak", icon: "🥉" },
+  { weeks: 6, label: "6-Week Streak", icon: "🥈" },
+  { weeks: 10, label: "10-Week Streak", icon: "🥇" },
+];
+const getEarnedBadges = (streak) => STREAK_BADGES.filter(b => streak >= b.weeks);
+
 const LANDING_PREVIEW_EXERCISES = [
   { name: "Incline Dumbbell Press", sets: "3", reps: "10-12", rest: "90s", effort: "2 RIR", note: "No bench at home? Swapped for elevated push-ups on a step instead.", reco: { level: "progress", weightSuggestion: 25 } },
   { name: "Chest-Supported Dumbbell Row", sets: "3", reps: "10-12", rest: "75s", effort: "2 RIR", note: "Chest support protects your lower back, matching the mild scoliosis note you gave.", reco: { level: "maintain" } },
@@ -940,6 +971,7 @@ export default function FitnessPlanGenerator() {
   const [planId, setPlanId] = useState(null);
   const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [checkins, setCheckins] = useState([]);
+  const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]); // badges crossed by the just-submitted check-in, shown once then dismissed
   const [currentWeek, setCurrentWeek] = useState(1);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [checkInState, setCheckInState] = useState({}); // "day::exerciseName" -> true/false
@@ -1172,6 +1204,8 @@ export default function FitnessPlanGenerator() {
   const totalAllowedGenerations = 3 + (profile?.generation_credits || 0);
   const atGenerationLimit = profile?.has_paid && (profile?.plans_generated || 0) >= totalAllowedGenerations;
   const freeActionBlocked = !profile?.has_paid && !!profile?.free_action_used;
+  const currentStreak = computeStreak(checkins, planId);
+  const earnedBadges = getEarnedBadges(currentStreak);
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -1382,6 +1416,8 @@ export default function FitnessPlanGenerator() {
         .single();
 
       const history = [...checkins, checkinRow];
+      const previousStreak = computeStreak(checkins, planId);
+      const newStreak = computeStreak(history, planId);
 
       const res = await fetch("/api/adjust-plan", {
         method: "POST",
@@ -1390,7 +1426,7 @@ export default function FitnessPlanGenerator() {
           model: "claude-sonnet-4-6",
           max_tokens: 8000,
           system: ADJUST_SYSTEM_PROMPT,
-          messages: [{ role: "user", content: buildAdjustPrompt(plan, history) }],
+          messages: [{ role: "user", content: buildAdjustPrompt(plan, history, newStreak) }],
         }),
       });
       const data = await res.json();
@@ -1399,6 +1435,9 @@ export default function FitnessPlanGenerator() {
       const adjustedPlan = JSON.parse(clean);
 
       await supabase.from("plans").update({ plan_data: adjustedPlan }).eq("id", planId);
+
+      const newlyEarned = STREAK_BADGES.filter(b => newStreak >= b.weeks && previousStreak < b.weeks);
+      if (newlyEarned.length > 0) setNewlyEarnedBadges(newlyEarned);
 
       setPlan(adjustedPlan);
       setCheckins(history);
@@ -1779,6 +1818,16 @@ export default function FitnessPlanGenerator() {
               {Math.max(totalAllowedGenerations - (profile?.plans_generated || 0), 0)} of {totalAllowedGenerations} credits left
             </span>
           )}
+          {profile?.has_paid && plan && planId && currentStreak >= 1 && (
+            <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }} title={`${currentStreak} consecutive weekly check-in${currentStreak === 1 ? "" : "s"}`}>
+              🔥 {currentStreak}-week streak
+              {earnedBadges.length > 0 && (
+                <span style={{ display: "inline-flex", gap: "0.15rem" }}>
+                  {earnedBadges.map(b => <span key={b.weeks} title={b.label}>{b.icon}</span>)}
+                </span>
+              )}
+            </span>
+          )}
           {profile?.has_paid && plan && planId && (
             canCheckIn ? (
               <button onClick={openCheckIn} className="btn btn-cool">
@@ -1847,6 +1896,17 @@ export default function FitnessPlanGenerator() {
                 : <>🎉 You're unlocked! Your €19 covers <strong>3 plan generations or routine grades</strong> total. Use them whenever you're ready.</>}
             </p>
             <span onClick={() => setJustUnlocked(null)} style={{ cursor: "pointer", fontWeight: 700, color: "var(--accent-deep)", flexShrink: 0 }}>×</span>
+          </div>
+        </div>
+      )}
+
+      {newlyEarnedBadges.length > 0 && (
+        <div style={{ maxWidth: 720, margin: "0.85rem auto 0", padding: "0 1.25rem" }}>
+          <div className="info-box info-box-cool" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+            <p style={{ margin: 0 }}>
+              {newlyEarnedBadges.map(b => b.icon).join(" ")} New badge{newlyEarnedBadges.length > 1 ? "s" : ""}: <strong>{newlyEarnedBadges.map(b => b.label).join(", ")}</strong>. {currentStreak} weeks checked in, in a row.
+            </p>
+            <span onClick={() => setNewlyEarnedBadges([])} style={{ cursor: "pointer", fontWeight: 700, color: "var(--accent-deep)", flexShrink: 0 }}>×</span>
           </div>
         </div>
       )}
