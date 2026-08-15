@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TermsOfService, PrivacyPolicy } from "./legal";
-import { AILoader } from "./components/AILoader";
 import { exportToPDF } from "./pdfExport";
 import { SYSTEM_PROMPT, ADJUST_SYSTEM_PROMPT, SWAP_SYSTEM_PROMPT, GRADE_SYSTEM_PROMPT, buildPrompt, buildAdjustPrompt, buildSwapPrompt, buildGradePrompt } from "./prompts";
 import {
@@ -49,6 +48,7 @@ export default function FitnessPlanGenerator() {
     enjoy: "", dislike: "", injuries: "", equipment: [], equipmentLocation: "",
     otherActivity: ""
   });
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -138,6 +138,41 @@ export default function FitnessPlanGenerator() {
       }
     }
   }, [session, profile]);
+
+  // Restores an in-progress (not-yet-submitted) plan/grade form after a checkout
+  // redirect (or refresh) wipes in-memory state — the form is otherwise only kept
+  // in useState, so hitting the paywall and clicking "Unlock" (a full-page redirect
+  // to Stripe) used to silently discard everything the user had typed in.
+  useEffect(() => {
+    if (!session || draftHydrated) return;
+    const key = `fitplan_draft_form_${session.user.id}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const draft = JSON.parse(raw);
+        if (Date.now() - draft.savedAt < 24 * 60 * 60 * 1000) {
+          setForm(draft.form);
+          setRoutineText(draft.routineText || "");
+          setTemplateDays(draft.templateDays || [{ day: "Day 1", exercises: [{ name: "", sets: "", reps: "", effort: "" }] }]);
+          setMode(draft.mode || "generate");
+          setGradeInputMode(draft.gradeInputMode || "template");
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        localStorage.removeItem(key);
+      }
+    }
+    setDraftHydrated(true);
+  }, [session, draftHydrated]);
+
+  useEffect(() => {
+    if (!session || !draftHydrated || plan || gradeResult) return;
+    localStorage.setItem(
+      `fitplan_draft_form_${session.user.id}`,
+      JSON.stringify({ form, routineText, templateDays, mode, gradeInputMode, savedAt: Date.now() })
+    );
+  }, [session, draftHydrated, form, routineText, templateDays, mode, gradeInputMode, plan, gradeResult]);
 
   const migratingPendingPlanRef = useRef(false);
   useEffect(() => {
@@ -346,6 +381,7 @@ export default function FitnessPlanGenerator() {
       setPlanCreatedAt(new Date().toISOString());
       setCheckins([]);
       setCurrentWeek(1);
+      localStorage.removeItem(`fitplan_draft_form_${session.user.id}`);
       if (session && profile?.has_paid) {
         await savePlan(parsed);
         await fetch("/api/track-generation", {
@@ -435,6 +471,7 @@ export default function FitnessPlanGenerator() {
       const parsed = JSON.parse(clean);
       setGradeResult(parsed);
       loadProfile();
+      localStorage.removeItem(`fitplan_draft_form_${session.user.id}`);
     } catch (e) {
       setGradeError("Something went wrong grading your routine. Please try again.");
     } finally {
@@ -1155,7 +1192,12 @@ export default function FitnessPlanGenerator() {
           </>
         )}
 
-        {(loading || grading) && <AILoader text={loading ? "Generating" : "Grading"} />}
+        {(loading || grading) && (
+          <div style={{ textAlign: "center", padding: "5rem 0" }}>
+            <div className="auth-spinner" style={{ width: 44, height: 44, margin: "0 auto 1rem" }} />
+            <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{loading ? "Building your personalized plan..." : "Grading your routine..."}</p>
+          </div>
+        )}
 
         {plan && (
           <div>
