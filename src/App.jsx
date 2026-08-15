@@ -48,6 +48,7 @@ export default function FitnessPlanGenerator() {
     enjoy: "", dislike: "", injuries: "", equipment: [], equipmentLocation: "",
     otherActivity: ""
   });
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -137,6 +138,41 @@ export default function FitnessPlanGenerator() {
       }
     }
   }, [session, profile]);
+
+  // Restores an in-progress (not-yet-submitted) plan/grade form after a checkout
+  // redirect (or refresh) wipes in-memory state — the form is otherwise only kept
+  // in useState, so hitting the paywall and clicking "Unlock" (a full-page redirect
+  // to Stripe) used to silently discard everything the user had typed in.
+  useEffect(() => {
+    if (!session || draftHydrated) return;
+    const key = `fitplan_draft_form_${session.user.id}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const draft = JSON.parse(raw);
+        if (Date.now() - draft.savedAt < 24 * 60 * 60 * 1000) {
+          setForm(draft.form);
+          setRoutineText(draft.routineText || "");
+          setTemplateDays(draft.templateDays || [{ day: "Day 1", exercises: [{ name: "", sets: "", reps: "", effort: "" }] }]);
+          setMode(draft.mode || "generate");
+          setGradeInputMode(draft.gradeInputMode || "template");
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        localStorage.removeItem(key);
+      }
+    }
+    setDraftHydrated(true);
+  }, [session, draftHydrated]);
+
+  useEffect(() => {
+    if (!session || !draftHydrated || plan || gradeResult) return;
+    localStorage.setItem(
+      `fitplan_draft_form_${session.user.id}`,
+      JSON.stringify({ form, routineText, templateDays, mode, gradeInputMode, savedAt: Date.now() })
+    );
+  }, [session, draftHydrated, form, routineText, templateDays, mode, gradeInputMode, plan, gradeResult]);
 
   const migratingPendingPlanRef = useRef(false);
   useEffect(() => {
@@ -279,14 +315,20 @@ export default function FitnessPlanGenerator() {
   const handleSignOut = async () => { await supabase.auth.signOut(); setPlan(null); };
 
   const handleChange = e => {
-    setForm(p => ({ ...p, [e.target.name]: e.target.value }));
-    if (fieldErrors[e.target.name]) setFieldErrors(p => ({ ...p, [e.target.name]: undefined }));
+    const { name, value } = e.target;
+    setForm(p => (
+      name === "days"
+        ? { ...p, days: value, specificDays: p.specificDays.slice(0, Number(value)) }
+        : { ...p, [name]: value }
+    ));
+    if (fieldErrors[name]) setFieldErrors(p => ({ ...p, [name]: undefined }));
   };
   const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
-  const toggleSpecificDay = (day) => setForm(p => ({
-    ...p,
-    specificDays: p.specificDays.includes(day) ? p.specificDays.filter(d => d !== day) : [...p.specificDays, day],
-  }));
+  const toggleSpecificDay = (day) => setForm(p => {
+    if (p.specificDays.includes(day)) return { ...p, specificDays: p.specificDays.filter(d => d !== day) };
+    if (p.specificDays.length >= Number(p.days)) return p;
+    return { ...p, specificDays: [...p.specificDays, day] };
+  });
   const handleEquipmentLocation = (loc) => {
     setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
     if (fieldErrors.equipmentLocation) setFieldErrors(p => ({ ...p, equipmentLocation: undefined }));
@@ -339,6 +381,7 @@ export default function FitnessPlanGenerator() {
       setPlanCreatedAt(new Date().toISOString());
       setCheckins([]);
       setCurrentWeek(1);
+      localStorage.removeItem(`fitplan_draft_form_${session.user.id}`);
       if (session && profile?.has_paid) {
         await savePlan(parsed);
         await fetch("/api/track-generation", {
@@ -428,6 +471,7 @@ export default function FitnessPlanGenerator() {
       const parsed = JSON.parse(clean);
       setGradeResult(parsed);
       loadProfile();
+      localStorage.removeItem(`fitplan_draft_form_${session.user.id}`);
     } catch (e) {
       setGradeError("Something went wrong grading your routine. Please try again.");
     } finally {
@@ -1022,12 +1066,13 @@ export default function FitnessPlanGenerator() {
               </div>
               <div className="field">
                 <label className="field-label">Specific days? (optional)</label>
-                <p className="field-hint">Only pick days if you have fixed ones. Leave blank to let the plan decide.</p>
+                <p className="field-hint">Only pick days if you have fixed ones, up to your {form.days}-day count above. Leave blank to let the plan decide.</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                   {DAYS_OF_WEEK.map(day => {
                     const isSelected = form.specificDays.includes(day);
+                    const isDisabled = !isSelected && form.specificDays.length >= Number(form.days);
                     return (
-                      <button key={day} type="button" onClick={() => toggleSpecificDay(day)} className={`equip-chip${isSelected ? " is-selected" : ""}`}>
+                      <button key={day} type="button" disabled={isDisabled} onClick={() => toggleSpecificDay(day)} className={`equip-chip${isSelected ? " is-selected" : ""}`} style={isDisabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}>
                         {isSelected ? "✓ " : ""}{day}
                       </button>
                     );
