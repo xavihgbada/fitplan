@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TermsOfService, PrivacyPolicy } from "./legal";
+import { AILoader } from "./components/AILoader";
 import { exportToPDF } from "./pdfExport";
 import { SYSTEM_PROMPT, ADJUST_SYSTEM_PROMPT, SWAP_SYSTEM_PROMPT, GRADE_SYSTEM_PROMPT, buildPrompt, buildAdjustPrompt, buildSwapPrompt, buildGradePrompt } from "./prompts";
 import {
@@ -1147,12 +1148,7 @@ export default function FitnessPlanGenerator() {
           </>
         )}
 
-        {(loading || grading) && (
-          <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div className="auth-spinner" style={{ width: 44, height: 44, margin: "0 auto 1rem" }} />
-            <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{loading ? "Building your personalized plan..." : "Grading your routine..."}</p>
-          </div>
-        )}
+        {(loading || grading) && <AILoader text={loading ? "Generating" : "Grading"} />}
 
         {plan && (
           <div>
