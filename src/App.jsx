@@ -1,6 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { TermsOfService, PrivacyPolicy } from "./legal";
+
+function ScrollRevealCard({ children }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.9", "start 0.35"] });
+  const rotateX = useTransform(scrollYProgress, [0, 1], [18, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 1], [0.4, 1]);
+
+  return (
+    <motion.div ref={ref} style={{ rotateX, scale, opacity, transformPerspective: "1000px" }}>
+      {children}
+    </motion.div>
+  );
+}
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -1742,6 +1757,7 @@ export default function FitnessPlanGenerator() {
             <p className="landing-eyebrow">
               Example from a real generated plan
             </p>
+            <ScrollRevealCard>
             <div className="landing-preview">
               <div className="landing-preview-tabs">
                 {["Monday", "Tuesday", "Thursday", "Saturday"].map((d, i) => (
@@ -1788,6 +1804,7 @@ export default function FitnessPlanGenerator() {
                 </div>
               </div>
             </div>
+            </ScrollRevealCard>
           </div>
 
           <div style={{ marginTop: "3rem", textAlign: "left" }}>

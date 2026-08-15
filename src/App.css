@@ -1115,6 +1115,7 @@
   border-radius: 12px;
   border: 1px solid var(--line);
   padding: 1.1rem;
+  contain: layout;
 }
 .expand-block.tint-mint {
   background: var(--accent-bg);
