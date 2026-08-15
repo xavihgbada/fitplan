@@ -14,15 +14,12 @@
   }
 }
 
-/* ---------- AI loader (full-screen, shown while generating/grading) ---------- */
+/* ---------- AI loader (shown inline while generating/grading) ---------- */
 .ai-loader-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #123a26, #0b1f15, #000);
+  padding: 5rem 0;
 }
 .ai-loader {
   position: relative;
@@ -33,7 +30,7 @@
 }
 .ai-loader-letter {
   display: inline-block;
-  color: #fff;
+  color: var(--ink);
   opacity: 0.4;
   animation: aiLoaderLetter 3s infinite;
 }

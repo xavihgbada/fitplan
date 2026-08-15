@@ -280,14 +280,20 @@ export default function FitnessPlanGenerator() {
   const handleSignOut = async () => { await supabase.auth.signOut(); setPlan(null); };
 
   const handleChange = e => {
-    setForm(p => ({ ...p, [e.target.name]: e.target.value }));
-    if (fieldErrors[e.target.name]) setFieldErrors(p => ({ ...p, [e.target.name]: undefined }));
+    const { name, value } = e.target;
+    setForm(p => (
+      name === "days"
+        ? { ...p, days: value, specificDays: p.specificDays.slice(0, Number(value)) }
+        : { ...p, [name]: value }
+    ));
+    if (fieldErrors[name]) setFieldErrors(p => ({ ...p, [name]: undefined }));
   };
   const handleEquipment = (equipment) => setForm(p => ({ ...p, equipment }));
-  const toggleSpecificDay = (day) => setForm(p => ({
-    ...p,
-    specificDays: p.specificDays.includes(day) ? p.specificDays.filter(d => d !== day) : [...p.specificDays, day],
-  }));
+  const toggleSpecificDay = (day) => setForm(p => {
+    if (p.specificDays.includes(day)) return { ...p, specificDays: p.specificDays.filter(d => d !== day) };
+    if (p.specificDays.length >= Number(p.days)) return p;
+    return { ...p, specificDays: [...p.specificDays, day] };
+  });
   const handleEquipmentLocation = (loc) => {
     setForm(p => ({ ...p, equipmentLocation: loc, equipment: [] }));
     if (fieldErrors.equipmentLocation) setFieldErrors(p => ({ ...p, equipmentLocation: undefined }));
@@ -1023,12 +1029,13 @@ export default function FitnessPlanGenerator() {
               </div>
               <div className="field">
                 <label className="field-label">Specific days? (optional)</label>
-                <p className="field-hint">Only pick days if you have fixed ones. Leave blank to let the plan decide.</p>
+                <p className="field-hint">Only pick days if you have fixed ones, up to your {form.days}-day count above. Leave blank to let the plan decide.</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                   {DAYS_OF_WEEK.map(day => {
                     const isSelected = form.specificDays.includes(day);
+                    const isDisabled = !isSelected && form.specificDays.length >= Number(form.days);
                     return (
-                      <button key={day} type="button" onClick={() => toggleSpecificDay(day)} className={`equip-chip${isSelected ? " is-selected" : ""}`}>
+                      <button key={day} type="button" disabled={isDisabled} onClick={() => toggleSpecificDay(day)} className={`equip-chip${isSelected ? " is-selected" : ""}`} style={isDisabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}>
                         {isSelected ? "✓ " : ""}{day}
                       </button>
                     );
