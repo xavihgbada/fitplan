@@ -373,6 +373,29 @@
   animation: spin 0.75s linear infinite;
 }
 
+.progress-bar-track {
+  width: 100%;
+  max-width: 320px;
+  height: 8px;
+  margin: 0 auto 0.6rem;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+.progress-bar-percent {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--ink);
+  margin: 0 0 0.25rem;
+}
+
 .btn-block {
   width: 100%;
   padding: 0.75rem;
@@ -871,6 +894,40 @@
   font-weight: 700;
   color: var(--faint);
   margin-left: 0.15rem;
+}
+
+.circular-score {
+  position: relative;
+  margin: 0.25rem auto 0;
+}
+.circular-score-svg {
+  transform: rotate(-90deg);
+}
+.circular-score-track {
+  stroke: var(--line);
+}
+.circular-score-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.circular-score-number {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 2.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+.circular-score-max {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--faint);
+  margin-top: 0.1rem;
 }
 
 /* tabs */

@@ -11,6 +11,7 @@ import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeF
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
 import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload } from "./recommendations";
 import { ScrollRevealCard, LANDING_FEATURES, LandingCarousel } from "./components/LandingCarousel";
+import { CircularScore } from "./components/CircularScore";
 import { TypeTag, inputStyle, Field, Divider, EquipmentSelector } from "./components/UI";
 
 const supabase = createClient(
@@ -51,6 +52,7 @@ export default function FitnessPlanGenerator() {
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState("");
   const [mode, setMode] = useState("generate"); // "generate" | "grade"
   const [routineText, setRoutineText] = useState("");
@@ -108,6 +110,19 @@ export default function FitnessPlanGenerator() {
   useEffect(() => {
     if (session) { loadSavedPlans(); loadProfile(); }
   }, [session]);
+
+  // Neither /api/generate-plan nor /api/grade-workout streams a real progress
+  // signal (a single Anthropic call that resolves all at once), so this is a
+  // simulated bar: it eases toward 92% and holds there for however long the
+  // request actually takes, then the success path snaps it to 100% itself.
+  useEffect(() => {
+    if (!loading && !grading) { setLoadingProgress(0); return; }
+    setLoadingProgress(6);
+    const interval = setInterval(() => {
+      setLoadingProgress(p => (p >= 92 ? p : p + (92 - p) * 0.08));
+    }, 250);
+    return () => clearInterval(interval);
+  }, [loading, grading]);
 
   useEffect(() => {
     // After returning from Stripe checkout, poll for a little while so the
@@ -391,6 +406,7 @@ export default function FitnessPlanGenerator() {
       const text = data.content?.map(b => b.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
+      setLoadingProgress(100);
       setPlan(parsed);
       setActiveWorkout(0);
       setPlanId(null);
@@ -485,6 +501,7 @@ export default function FitnessPlanGenerator() {
       const text = data.content?.map(b => b.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
+      setLoadingProgress(100);
       setGradeResult(parsed);
       loadProfile();
       localStorage.removeItem(`fitplan_draft_form_${session.user.id}`);
@@ -1230,7 +1247,10 @@ export default function FitnessPlanGenerator() {
 
         {(loading || grading) && (
           <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div className="auth-spinner" style={{ width: 44, height: 44, margin: "0 auto 1rem" }} />
+            <div className="progress-bar-track">
+              <div className="progress-bar-fill" style={{ width: `${Math.round(loadingProgress)}%` }} />
+            </div>
+            <p className="progress-bar-percent">{Math.round(loadingProgress)}%</p>
             <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{loading ? "Building your personalized plan..." : "Grading your routine..."}</p>
           </div>
         )}
@@ -1444,11 +1464,9 @@ export default function FitnessPlanGenerator() {
               <h2 className="results-title">Routine Review</h2>
               <p className="results-summary">{renderWithGlossary(gradeResult.summary)}</p>
             </div>
-            <div className="grade-score-card">
+            <div className="grade-score-card" style={{ textAlign: "center" }}>
               <div className="grade-score-label">Routine Score</div>
-              <div className="grade-score-value" style={{ color: scoreTone.text }}>
-                {gradeScore}<span className="grade-score-max">/100</span>
-              </div>
+              <CircularScore score={gradeScore} color={scoreTone.text} />
             </div>
             {gradeResult.strengths?.length > 0 && (
               <div className="section-card" style={{ padding: "1.25rem" }}>
