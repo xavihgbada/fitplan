@@ -9,11 +9,10 @@ const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized wor
   "title": "Plan title",
   "summary": "2-3 sentence overview of the approach and why it fits this person",
   "schedule": ["Monday", "Tuesday", "Thursday", "Saturday"],
-  "weeks": "8",
   "weeks_breakdown": [
     { "phase": "Phase 1 (Weeks 1-2)", "focus": "Brief focus description" },
-    { "phase": "Phase 2 (Weeks 3-5)", "focus": "Brief focus description" },
-    { "phase": "Phase 3 (Weeks 6-8)", "focus": "Brief focus description" }
+    { "phase": "Phase 2 (Weeks 3-4)", "focus": "Brief focus description" },
+    { "phase": "Phase 3 (Week 5+)", "focus": "Brief focus description" }
   ],
   "workouts": [
     {
@@ -36,6 +35,8 @@ const SYSTEM_PROMPT = `You are an expert fitness coach creating personalized wor
 Be specific. Every exercise must have sets, reps, and rest. Never include exercises the person dislikes. Directly address their past failures in the motivation strategy. Adapt everything to their injuries and limitations. Keep every nutrition tip to a single concise sentence, and keep motivation_strategy and weekly_checkin to 1-2 sentences each — none of these fields should ever become a paragraph.
 
 ${OUTPUT_STYLE_RULE}
+
+PROGRAM LENGTH — CRITICAL: this plan is ongoing and has no fixed total length or end date. Phase 1 covers weeks 1-2, Phase 2 covers weeks 3-4, and Phase 3 begins at week 5 and continues indefinitely. Never state or imply a total week count, a program end date, or an end week for Phase 3 (e.g. never write "Weeks 5-8" or "an 8-week plan") anywhere in the response, including "title" and "summary" — describe it as an ongoing or personalized plan instead.
 
 EXERCISE COUNT — CRITICAL: scale exercises per workout to the stated minutes per session, not a fixed number — a 30-minute session and a 90-minute session should look very different:
 - Up to 30 min: 3-4 exercises
@@ -95,7 +96,6 @@ const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitnes
   "title": "Plan title",
   "summary": "Updated 2-3 sentence overview",
   "schedule": ["Monday", "Tuesday", "Thursday", "Saturday"],
-  "weeks": "8",
   "weeks_breakdown": [ { "phase": "...", "focus": "..." } ],
   "workouts": [
     {
@@ -112,6 +112,7 @@ const ADJUST_SYSTEM_PROMPT = `You are an expert fitness coach adjusting a fitnes
 
 ADJUSTMENT RULES:
 - ${OUTPUT_STYLE_RULE}
+- PROGRAM LENGTH — CRITICAL: this plan is ongoing with no fixed total length or end date. Phase 1 covers weeks 1-2, Phase 2 covers weeks 3-4, Phase 3 begins at week 5 and continues indefinitely — keep generating standard week-to-week adjustments once the client is in Phase 3, with no "plan complete", "final week", or similar end-of-program state. Never state or imply a total week count or an end week for Phase 3 in title, summary, or weeks_breakdown.
 - BREVITY — CRITICAL: keep motivation_strategy and weekly_checkin to 1-2 sentences each, and every nutrition tip to a single sentence, matching the brevity of the original plan. Do not expand these into paragraphs, even when explaining a change in detail — put detailed reasoning in the plan summary instead if needed.
 - If an exercise was completed and felt manageable, apply progressive overload: increase reps, sets, or note a weight increase — small increments only.
 - SKIP REASONS — CRITICAL: each skipped exercise now comes with its own specific reason. Respond to each one individually and appropriately, not with a generic swap:
@@ -127,6 +128,7 @@ ADJUSTMENT RULES:
 - VOLUME GUIDELINES: Beginner 10-15 sets/muscle/week, Intermediate 12-18, Advanced 16-22. Progressive overload should never push volume outside these ranges in one jump — increase by 1-2 sets max per adjustment.
 - EFFORT TARGETS: every strength/hypertrophy working set keeps a populated "effort" value, 2-3 words max (e.g. "2-3 RIR", "Train to failure", "Form focus"), consistent with the original plan's fitness level and phase — conservative RIR (2-3) for beginners with a plain-language explanation the first time a numeric RIR appears; short qualitative labels ("Form focus"/"Light effort") for beginner technique-priority compounds instead of RIR, no exceptions within strength work; tighter RIR (1-2) with occasional true-failure sets for intermediate/advanced, especially in the Peak phase. Leave "effort" as "" only for cardio/conditioning, warm-ups, cooldowns, and pure mobility work. Never target failure, and keep effort conservative, for any exercise affected by the client's injuries/limitations. This governs how hard a set is pushed, not set count — don't let it affect the volume ranges above.
 - AGE-BASED GUIDANCE — only applies at the extremes: if the original plan reflects age-appropriate programming for a minor (conservative progression, no max-effort/1RM-style work) or for an older adult (joint-conscious exercise selection, explicit warmup emphasis, no unnecessary ballistic/high-impact movements), preserve that same character when adjusting — do not introduce max-effort/1RM work into a plan built conservative for a minor, and do not introduce ballistic/high-impact movements into a plan built joint-conscious for an older adult.
+- DELOAD WEEK — CRITICAL: if the message below says this is a scheduled deload week, override the normal progressive-overload and volume rules above for this adjustment only: reduce sets per exercise by roughly 40-50% (round down, minimum 1 set) for main working sets only, leaving warmup and cooldown untouched; drop the effort/RIR target by one step (e.g. "1-2 RIR" → "3-4 RIR"; leave already-qualitative technique-priority labels like "Form focus" unchanged); keep the exact same exercise selection for every workout — no swaps, substitutions, or removals; and have motivation_strategy name it as a deload week within the existing 1-2 sentence limit, framing it as intentional planned recovery, not a setback. If the message below does not say this is a deload week, ignore this rule and adjust normally.
 - SESSION BALANCE — CRITICAL: never let more than 2 exercises in a single session target the same primary muscle group, unless the original plan was an explicit specialization day. This matters most for low-frequency plans (2-3 days/week).
 - CORE/ABS — CRITICAL: keep core/abs volume concentrated into 2-4 training days with 1-2 exercises each (roughly 8-15 sets/week total) — do not spread it into a single token exercise on every day, which under-trains the muscle per session.
 - Never mislabel muscle targets (e.g. upright rows = rear delts/traps, never medial delt).
@@ -135,7 +137,7 @@ ADJUSTMENT RULES:
 
 ${OUTPUT_STYLE_RULE}`;
 
-const buildPrompt = (data) => `Create a personalized 8-week fitness plan for:
+const buildPrompt = (data) => `Create a personalized, ongoing fitness plan for:
 
 Goal: ${data.goal}
 Specific target: ${data.target || "Not specified"}
@@ -159,7 +161,7 @@ Available equipment (ONLY use these): ${
 
 CRITICAL: Do not assign any exercise that requires equipment not listed above. Return only the JSON object.`;
 
-const buildAdjustPrompt = (plan, checkinsHistory, streak = 0) => {
+const buildAdjustPrompt = (plan, checkinsHistory, streak = 0, isDeloadWeek = false) => {
   const latest = checkinsHistory[checkinsHistory.length - 1];
   return `Here is the client's current plan:
 ${JSON.stringify(plan)}
@@ -173,6 +175,7 @@ ${JSON.stringify(latest.completed_exercises)}
 Each exercise entry is either {"done": true} — completed as planned — or {"done": false, "reason": "..."} — skipped, with the client's own stated reason. Use these reasons individually per exercise, not as a general summary.
 General notes for the week (may be empty): ${latest.notes || "None"}
 ${streak >= 2 ? `Current check-in streak: ${streak} consecutive weeks.` : ""}
+${isDeloadWeek ? "This upcoming week is a scheduled deload week — apply the DELOAD WEEK rule above." : ""}
 
 Generate the adjusted plan for the upcoming week. Return only the JSON object.`;
 };
