@@ -917,14 +917,14 @@
 .circular-score-number {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 2.2rem;
+  font-size: 2.2em;
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--ink);
 }
 .circular-score-max {
   font-family: var(--sans);
-  font-size: 0.8rem;
+  font-size: 0.8em;
   font-weight: 700;
   color: var(--faint);
   margin-top: 0.1rem;

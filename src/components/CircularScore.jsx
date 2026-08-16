@@ -20,7 +20,7 @@ export const CircularScore = ({ score, color, size = 140 }) => {
   }, [score, count, progress]);
 
   return (
-    <div className="circular-score" style={{ width: size, height: size }}>
+    <div className="circular-score" style={{ width: size, height: size, fontSize: `${size / 140}rem` }}>
       <svg width={size} height={size} viewBox="0 0 120 120" className="circular-score-svg">
         <circle cx="60" cy="60" r={radius} strokeWidth="10" fill="none" className="circular-score-track" />
         <motion.circle

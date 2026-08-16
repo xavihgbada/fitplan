@@ -840,11 +840,26 @@ export default function FitnessPlanGenerator() {
                 </div>
                 <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Checks in, then adjusts</div>
                 <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Log what you actually did each week and the plan rewrites itself around it, not a static PDF you forget by week three.</div>
-                <div style={{ background: "var(--accent-bg)", borderRadius: "8px", padding: "0.6rem 0.75rem" }}>
-                  <label className="checkin-exercise-label" style={{ pointerEvents: "none" }}>
-                    <input type="checkbox" checked readOnly />
-                    Bench Press
-                  </label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <div style={{ background: "var(--accent-bg)", borderRadius: "8px", padding: "0.6rem 0.75rem" }}>
+                    <label className="checkin-exercise-label" style={{ pointerEvents: "none" }}>
+                      <input type="checkbox" checked readOnly />
+                      Bench Press
+                    </label>
+                  </div>
+                  <div style={{ background: "var(--accent-bg)", borderRadius: "8px", padding: "0.6rem 0.75rem" }}>
+                    <label className="checkin-exercise-label" style={{ pointerEvents: "none" }}>
+                      <input type="checkbox" checked readOnly />
+                      Romanian Deadlift
+                    </label>
+                  </div>
+                  <div style={{ background: "var(--warm-bg)", borderRadius: "8px", padding: "0.6rem 0.75rem" }}>
+                    <label className="checkin-exercise-label" style={{ pointerEvents: "none", color: "var(--warm-text)" }}>
+                      <input type="checkbox" readOnly />
+                      Pull-ups
+                    </label>
+                    <div style={{ fontSize: "0.78rem", color: "var(--warm-text)", marginTop: "0.3rem" }}>Too hard today</div>
+                  </div>
                 </div>
               </div>
 
@@ -854,9 +869,9 @@ export default function FitnessPlanGenerator() {
                 </div>
                 <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Grades your current routine</div>
                 <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Paste or build any routine, gym-built or homemade, and get a score with specific fixes, not generic encouragement.</div>
-                <div className="grade-score-card" style={{ margin: 0, padding: "0.75rem 0.9rem" }}>
+                <div className="grade-score-card" style={{ margin: 0, padding: "0.75rem 0.9rem", textAlign: "center" }}>
                   <div className="grade-score-label">Routine Score</div>
-                  <div className="grade-score-value" style={{ fontSize: "1.6rem", color: "var(--accent-deep)" }}>82<span className="grade-score-max">/100</span></div>
+                  <CircularScore score={82} color={GRADE_TONE_STYLES[getGradeScoreTone(82)].text} size={100} />
                 </div>
               </div>
 
@@ -866,8 +881,12 @@ export default function FitnessPlanGenerator() {
                 </div>
                 <div className="landing-feature-title" style={{ marginBottom: "0.4rem" }}>Knows when to push or pull back</div>
                 <div className="landing-feature-body" style={{ marginBottom: "0.9rem" }}>Compares this week's reps and weight against target ranges and calls a clear progress, maintain, or deload, no guesswork.</div>
-                <div className="exercise-reco" style={{ margin: 0, display: "inline-block", background: GRADE_TONE_STYLES.accent.bg, color: GRADE_TONE_STYLES.accent.text }}>
-                  ↑ Progress: try 25kg
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {[["progress", { weightSuggestion: 25 }], ["maintain", {}], ["deload", {}]].map(([level, rec]) => (
+                    <div key={level} className="exercise-reco" style={{ margin: 0, display: "inline-block", background: GRADE_TONE_STYLES[RECOMMENDATION_TONE[level]].bg, color: GRADE_TONE_STYLES[RECOMMENDATION_TONE[level]].text }}>
+                      {RECOMMENDATION_LABEL[level](rec)}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
