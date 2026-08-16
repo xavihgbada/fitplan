@@ -73,16 +73,16 @@ const exportToPDF = async (plan) => {
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   const scheduleLines = doc.splitTextToSize(`Schedule: ${plan.schedule?.join(", ")}`, pillW - 6);
-  const durationLines = doc.splitTextToSize(`Duration: ${plan.weeks} weeks`, pillW - 6);
+  const durationLines = doc.splitTextToSize(plan.is_deload_week ? "Status: Deload Week" : "Status: Ongoing plan", pillW - 6);
   const pillH = Math.max(scheduleLines.length, durationLines.length) * 4 + 4;
 
   doc.setFillColor(...LIGHT_GREEN_BG);
   doc.roundedRect(margin, y, pillW, pillH, 2, 2, "F");
   doc.setTextColor(...GREEN_DEEP);
   doc.text(scheduleLines, margin + 3, y + 5);
-  doc.setFillColor(...COOL_BG);
+  doc.setFillColor(...(plan.is_deload_week ? WARM_BG : COOL_BG));
   doc.roundedRect(margin + contentW / 2 + 2, y, pillW, pillH, 2, 2, "F");
-  doc.setTextColor(...COOL_TEXT);
+  doc.setTextColor(...(plan.is_deload_week ? WARM_TEXT : COOL_TEXT));
   doc.text(durationLines, margin + contentW / 2 + 5, y + 5);
   y += pillH + 6;
 

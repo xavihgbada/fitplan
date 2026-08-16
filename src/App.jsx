@@ -9,7 +9,7 @@ import {
 } from "./constants";
 import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeFix } from "./grading";
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
-import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, getExerciseRecommendation } from "./recommendations";
+import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, getExerciseRecommendation, shouldTriggerDeload } from "./recommendations";
 import { ScrollRevealCard, LANDING_FEATURES, LandingCarousel } from "./components/LandingCarousel";
 import { TypeTag, inputStyle, Field, Divider, EquipmentSelector } from "./components/UI";
 
@@ -551,6 +551,7 @@ export default function FitnessPlanGenerator() {
           week_number: currentWeek,
           completed_exercises,
           notes: checkInNotes,
+          is_deload: !!plan.is_deload_week,
         })
         .select()
         .single();
@@ -558,6 +559,7 @@ export default function FitnessPlanGenerator() {
       const history = [...checkins, checkinRow];
       const previousStreak = computeStreak(checkins, planId);
       const newStreak = computeStreak(history, planId);
+      const isDeloadWeek = shouldTriggerDeload(plan, history, currentWeek + 1);
 
       const res = await fetch("/api/adjust-plan", {
         method: "POST",
@@ -566,13 +568,17 @@ export default function FitnessPlanGenerator() {
           model: "claude-sonnet-4-6",
           max_tokens: 8000,
           system: ADJUST_SYSTEM_PROMPT,
-          messages: [{ role: "user", content: buildAdjustPrompt(plan, history, newStreak) }],
+          messages: [{ role: "user", content: buildAdjustPrompt(plan, history, newStreak, isDeloadWeek) }],
         }),
       });
       const data = await res.json();
       const text = data.content?.map(b => b.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const adjustedPlan = JSON.parse(clean);
+      // Deload status is decided deterministically in JS (see shouldTriggerDeload),
+      // not left to the model to echo back correctly — this is what the spacing rule
+      // and the UI label above key off for the next check-in.
+      adjustedPlan.is_deload_week = isDeloadWeek;
 
       await supabase.from("plans").update({ plan_data: adjustedPlan }).eq("id", planId);
 
@@ -711,7 +717,7 @@ export default function FitnessPlanGenerator() {
             A fitness plan <span className="landing-title-accent">built around your life</span>, not a generic template
           </h1>
           <p className="landing-sub">
-            Tell it your goals, equipment, injuries, and schedule. FitPlan AI's engine, purpose-built for fitness, generates a real 8-week plan around them, then adjusts it every week based on what you actually did.
+            Tell it your goals, equipment, injuries, and schedule. FitPlan AI's engine, purpose-built for fitness, generates a real ongoing plan around them, then adjusts it every week based on what you actually did.
           </p>
           <div className="landing-cta">
             <button className="btn btn-solid" onClick={() => { setAuthMode("signup"); setPage("app"); }}>
@@ -1107,7 +1113,7 @@ export default function FitnessPlanGenerator() {
                 </button>
               ) : (
                 <button onClick={generate} className="btn btn-solid btn-block" style={{ marginTop: "0.5rem" }}>
-                  Generate My 8-Week Plan →
+                  Generate My Plan →
                 </button>
               )}
             </div>
@@ -1215,7 +1221,11 @@ export default function FitnessPlanGenerator() {
               <p className="results-summary">{plan.summary}</p>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
                 <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)" }}>📅 {plan.schedule?.join(", ")}</span>
-                <span className="pill" style={{ background: "var(--cool-bg)", color: "var(--cool-text)" }}>⏱ {plan.weeks} weeks</span>
+                {plan.is_deload_week ? (
+                  <span className="pill" style={{ background: "var(--warm-bg)", color: "var(--warm-text)" }}>🧘 Deload Week</span>
+                ) : (
+                  <span className="pill" style={{ background: "var(--cool-bg)", color: "var(--cool-text)" }}>🔄 Ongoing plan</span>
+                )}
               </div>
             </div>
 
@@ -1448,7 +1458,7 @@ export default function FitnessPlanGenerator() {
       {showCheckIn && plan && (
         <div className="checkin-overlay">
           <div className="checkin-card">
-            <h3 className="checkin-title">Week {currentWeek} check-in</h3>
+            <h3 className="checkin-title">Week {currentWeek} check-in{plan.is_deload_week ? " (Deload Week)" : ""}</h3>
             <p className="checkin-sub">Everything's checked as done by default. Uncheck anything you skipped and tell us why. For anything you did, log the weight and reps you averaged across working sets, since it drives next time's progress suggestion.</p>
 
             {plan.workouts.map((w, wi) => (

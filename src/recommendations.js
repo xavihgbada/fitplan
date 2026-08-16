@@ -69,4 +69,38 @@ const computeStreak = (checkins, planId) => {
   return streak;
 };
 
-export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak };
+// --- Plan-wide deload week trigger ---
+// A layer on top of the per-exercise deload flag above, not a replacement for it —
+// getExerciseRecommendation's 2-consecutive-below-range rule is still what flags each
+// individual exercise; this only decides whether enough of them (or enough time) add
+// up to a scheduled deload week for the whole plan.
+const DELOAD_EXERCISE_THRESHOLD = 0.4; // >= 40% of tracked exercises flagged deload-eligible
+const DELOAD_TIME_FLOOR_WEEKS = 6; // force a deload if this many weeks pass with no exercise-level trigger
+const DELOAD_MIN_SPACING_WEEKS = 4; // never trigger a second deload within this many weeks of the last one
+
+// history is expected in chronological order, already scoped to one plan (matches
+// how `checkins` state is loaded — see loadCheckins's .eq("plan_id", id)).
+const getLastDeloadWeek = (history) =>
+  history.reduce((last, c) => (c.is_deload && (last == null || c.week_number > last) ? c.week_number : last), null);
+
+// upcomingWeek is the week_number of the plan about to be generated (the week after
+// the check-in that was just submitted), since that's the week the deload would apply to.
+const shouldTriggerDeload = (plan, history, upcomingWeek) => {
+  const lastDeloadWeek = getLastDeloadWeek(history);
+  if (lastDeloadWeek != null && upcomingWeek - lastDeloadWeek < DELOAD_MIN_SPACING_WEEKS) return false;
+
+  let tracked = 0;
+  let flagged = 0;
+  plan.workouts?.forEach(w => {
+    w.exercises?.forEach(ex => {
+      if (!parseRepRange(ex.reps)) return;
+      tracked++;
+      if (getExerciseRecommendation(history, w.day, ex.name, ex.reps)?.level === "deload") flagged++;
+    });
+  });
+  if (tracked > 0 && flagged / tracked >= DELOAD_EXERCISE_THRESHOLD) return true;
+
+  return upcomingWeek - (lastDeloadWeek ?? 0) >= DELOAD_TIME_FLOOR_WEEKS;
+};
+
+export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, shouldTriggerDeload };
