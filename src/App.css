@@ -819,6 +819,37 @@
   border-radius: 12px;
   margin-bottom: 1.25rem;
 }
+.streak-card-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.streak-card-count {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.8rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.streak-card-unit {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--faint);
+  margin-left: 0.15rem;
+}
+.streak-card-badges {
+  display: flex;
+  gap: 0.3rem;
+  font-size: 1.3rem;
+}
+.streak-card-lifetime {
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--faint);
+}
+
 .grade-score-label {
   font-size: 0.74rem;
   font-weight: 700;
@@ -1232,6 +1263,20 @@
   font-size: 0.95rem;
   color: var(--ink);
   margin-bottom: 0.5rem;
+}
+
+.checkin-day-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+.checkin-day-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .checkin-exercise {

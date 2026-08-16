@@ -50,23 +50,64 @@ const RECOMMENDATION_LABEL = {
   deload: (r) => `↓ Deload${r.weightSuggestion ? `: try ${r.weightSuggestion}kg` : ": ease up next session"}`,
 };
 
-// Consecutive-week check-in streak, computed client-side from existing checkin rows
-// (no new table/column). A gap of more than 10 days between one check-in and the
-// next breaks the streak, but the check-in right after a gap still counts as week 1
-// of a new streak, not 0. Returns the CURRENT run length (since the last break), not
-// the longest run in the plan's history.
+// Fraction of a check-in's scheduled exercises (across all days) marked done.
+// 0 when the check-in recorded no exercises at all, rather than dividing by zero.
+const computeWeekCompletionRate = (checkin) => {
+  let total = 0;
+  let done = 0;
+  Object.values(checkin.completed_exercises || {}).forEach(dayExercises => {
+    Object.values(dayExercises || {}).forEach(entry => {
+      total++;
+      if (entry?.done) done++;
+    });
+  });
+  return total > 0 ? done / total : 0;
+};
+
+const STREAK_COMPLETION_THRESHOLD = 0.7;
+
+// Adherence-based, consecutive-week check-in streak, computed client-side from
+// existing checkin rows (no new table/column). A week only "counts" toward the
+// streak if >= 70% of that week's scheduled exercises were completed — a
+// below-threshold week breaks the streak outright, same as a gap of more than
+// 10 days between two otherwise-qualifying check-ins does. Either way, the next
+// qualifying check-in restarts the streak at 1, not 0. Returns the CURRENT run
+// length (since the last break), not the longest run in the plan's history.
 const computeStreak = (checkins, planId) => {
   const sorted = checkins
     .filter(c => c.plan_id === planId)
     .slice()
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  if (sorted.length === 0) return 0;
-  let streak = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const gapDays = (new Date(sorted[i].created_at) - new Date(sorted[i - 1].created_at)) / 86400000;
-    streak = gapDays <= 10 ? streak + 1 : 1;
+
+  let streak = 0;
+  let prevDate = null;
+  for (const c of sorted) {
+    const date = new Date(c.created_at);
+    if (computeWeekCompletionRate(c) < STREAK_COMPLETION_THRESHOLD) {
+      streak = 0;
+      prevDate = date;
+      continue;
+    }
+    const gapDays = prevDate ? (date - prevDate) / 86400000 : null;
+    streak = (streak > 0 && gapDays !== null && gapDays <= 10) ? streak + 1 : 1;
+    prevDate = date;
   }
   return streak;
+};
+
+// Lifetime total exercises ever marked done, across every plan and every
+// check-in for the user — no plan_id filter, no streak/gap logic, never
+// resets. Monotonically increasing by definition.
+const computeLifetimeCompleted = (checkins) => {
+  let total = 0;
+  checkins.forEach(c => {
+    Object.values(c.completed_exercises || {}).forEach(dayExercises => {
+      Object.values(dayExercises || {}).forEach(entry => {
+        if (entry?.done) total++;
+      });
+    });
+  });
+  return total;
 };
 
 // --- Plan-wide deload week trigger ---
@@ -103,4 +144,4 @@ const shouldTriggerDeload = (plan, history, upcomingWeek) => {
   return upcomingWeek - (lastDeloadWeek ?? 0) >= DELOAD_TIME_FLOOR_WEEKS;
 };
 
-export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, shouldTriggerDeload };
+export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, shouldTriggerDeload };
