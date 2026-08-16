@@ -9,7 +9,7 @@ import {
 } from "./constants";
 import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeFix } from "./grading";
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
-import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, getExerciseRecommendation, shouldTriggerDeload } from "./recommendations";
+import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload } from "./recommendations";
 import { ScrollRevealCard, LANDING_FEATURES, LandingCarousel } from "./components/LandingCarousel";
 import { TypeTag, inputStyle, Field, Divider, EquipmentSelector } from "./components/UI";
 
@@ -68,12 +68,15 @@ export default function FitnessPlanGenerator() {
   const [planId, setPlanId] = useState(null);
   const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [checkins, setCheckins] = useState([]);
+  const [lifetimeCheckins, setLifetimeCheckins] = useState([]); // every check-in for this user across ALL plans, for the lifetime completed-exercises total — not plan_id-scoped like `checkins` above
   const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]); // badges crossed by the just-submitted check-in, shown once then dismissed
   const [currentWeek, setCurrentWeek] = useState(1);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [checkInState, setCheckInState] = useState({}); // "day::exerciseName" -> true/false
   const [skipReasons, setSkipReasons] = useState({}); // "day::exerciseName" -> reason string, only used when skipped
   const [checkInLogs, setCheckInLogs] = useState({}); // "day::exerciseName" -> { avgWeight, avgReps }, only used when done
+  const [dayCheckInState, setDayCheckInState] = useState({}); // day -> true/false, default true (missing key treated as true); false means the whole day was missed
+  const [dayReasons, setDayReasons] = useState({}); // day -> reason string, only used when a whole day is unchecked
   const [checkInNotes, setCheckInNotes] = useState("");
   const [adjusting, setAdjusting] = useState(false);
 
@@ -96,6 +99,11 @@ export default function FitnessPlanGenerator() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session) { setLifetimeCheckins([]); return; }
+    loadLifetimeCheckins();
+  }, [session]);
 
   useEffect(() => {
     if (session) { loadSavedPlans(); loadProfile(); }
@@ -268,6 +276,13 @@ export default function FitnessPlanGenerator() {
     setCurrentWeek((data?.length || 0) + 1);
   };
 
+  // Lifetime completed-exercises total isn't scoped to one plan, so it's loaded
+  // once per session rather than alongside a specific plan's checkins.
+  const loadLifetimeCheckins = async () => {
+    const { data } = await supabase.from("checkins").select("completed_exercises").eq("user_id", session.user.id);
+    setLifetimeCheckins(data || []);
+  };
+
   const loadPlan = async (id) => {
     const { data } = await supabase.from("plans").select("plan_data, created_at").eq("id", id).single();
     if (data) {
@@ -344,6 +359,7 @@ export default function FitnessPlanGenerator() {
   const freeActionBlocked = !profile?.has_paid && !!profile?.free_action_used;
   const currentStreak = computeStreak(checkins, planId);
   const earnedBadges = getEarnedBadges(currentStreak);
+  const lifetimeCompleted = computeLifetimeCompleted(lifetimeCheckins);
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -496,6 +512,10 @@ export default function FitnessPlanGenerator() {
     setCheckInState(p => ({ ...p, [key]: !p[key] }));
   };
 
+  const toggleDayDone = (day) => {
+    setDayCheckInState(p => ({ ...p, [day]: p[day] === false }));
+  };
+
   const openCheckIn = () => {
     const initial = {};
     plan.workouts.forEach(w => {
@@ -506,12 +526,18 @@ export default function FitnessPlanGenerator() {
     setCheckInState(initial);
     setSkipReasons({});
     setCheckInLogs({});
+    setDayCheckInState({});
+    setDayReasons({});
     setShowCheckIn(true);
   };
 
   const updateSkipReason = (day, exerciseName, value) => {
     const key = `${day}::${exerciseName}`;
     setSkipReasons(p => ({ ...p, [key]: value }));
+  };
+
+  const updateDayReason = (day, value) => {
+    setDayReasons(p => ({ ...p, [day]: value }));
   };
 
   const updateCheckInLog = (day, exerciseName, field, rawValue) => {
@@ -534,12 +560,13 @@ export default function FitnessPlanGenerator() {
       const completed_exercises = {};
       plan.workouts.forEach(w => {
         completed_exercises[w.day] = {};
+        const dayDone = dayCheckInState[w.day] !== false;
         w.exercises.forEach(ex => {
           const key = `${w.day}::${ex.name}`;
-          const done = !!checkInState[key];
+          const done = dayDone && !!checkInState[key];
           completed_exercises[w.day][ex.name] = done
             ? { done: true, avgWeight: checkInLogs[key]?.avgWeight ?? null, avgReps: checkInLogs[key]?.avgReps ?? null }
-            : { done: false, reason: skipReasons[key]?.trim() || "No reason given" };
+            : { done: false, reason: dayDone ? (skipReasons[key]?.trim() || "No reason given") : (dayReasons[w.day]?.trim() || "No reason given") };
         });
       });
 
@@ -560,6 +587,7 @@ export default function FitnessPlanGenerator() {
       const previousStreak = computeStreak(checkins, planId);
       const newStreak = computeStreak(history, planId);
       const isDeloadWeek = shouldTriggerDeload(plan, history, currentWeek + 1);
+      setLifetimeCheckins(prev => [...prev, checkinRow]);
 
       const res = await fetch("/api/adjust-plan", {
         method: "POST",
@@ -591,6 +619,8 @@ export default function FitnessPlanGenerator() {
       setCheckInState({});
       setSkipReasons({});
       setCheckInLogs({});
+      setDayCheckInState({});
+      setDayReasons({});
       setCheckInNotes("");
       setShowCheckIn(false);
       setActiveWorkout(0);
@@ -1229,6 +1259,23 @@ export default function FitnessPlanGenerator() {
               </div>
             </div>
 
+            {plan && planId && (
+              <div className="section-card streak-card" style={{ padding: "1.25rem" }}>
+                <div className="streak-card-row">
+                  <div>
+                    <div className="section-title">Check-in Streak</div>
+                    <div className="streak-card-count">🔥 {currentStreak}<span className="streak-card-unit">{currentStreak === 1 ? " week" : " weeks"}</span></div>
+                  </div>
+                  {earnedBadges.length > 0 && (
+                    <div className="streak-card-badges">
+                      {earnedBadges.map(b => <span key={b.weeks} title={b.label}>{b.icon}</span>)}
+                    </div>
+                  )}
+                </div>
+                <div className="streak-card-lifetime">{lifetimeCompleted} exercise{lifetimeCompleted === 1 ? "" : "s"} completed lifetime</div>
+              </div>
+            )}
+
             {plan.weeks_breakdown && (
               <div className="section-card" style={{ padding: "1.25rem" }}>
                 <h3 className="section-title">Program Phases</h3>
@@ -1459,12 +1506,17 @@ export default function FitnessPlanGenerator() {
         <div className="checkin-overlay">
           <div className="checkin-card">
             <h3 className="checkin-title">Week {currentWeek} check-in{plan.is_deload_week ? " (Deload Week)" : ""}</h3>
-            <p className="checkin-sub">Everything's checked as done by default. Uncheck anything you skipped and tell us why. For anything you did, log the weight and reps you averaged across working sets, since it drives next time's progress suggestion.</p>
+            <p className="checkin-sub">Everything's checked as done by default. Uncheck anything you skipped and tell us why, or uncheck a whole day if you missed it entirely. For anything you did, log the weight and reps you averaged across working sets, since it drives next time's progress suggestion.</p>
 
-            {plan.workouts.map((w, wi) => (
+            {plan.workouts.map((w, wi) => {
+              const dayDone = dayCheckInState[w.day] !== false;
+              return (
               <div key={wi} className="checkin-day">
-                <div className="checkin-day-title">{w.day} · {w.name}</div>
-                {w.exercises.map((ex, ei) => {
+                <label className="checkin-day-toggle">
+                  <input type="checkbox" checked={dayDone} onChange={() => toggleDayDone(w.day)} />
+                  <span className="checkin-day-title">{w.day} · {w.name}</span>
+                </label>
+                {dayDone ? w.exercises.map((ex, ei) => {
                   const key = `${w.day}::${ex.name}`;
                   const done = !!checkInState[key];
                   const log = checkInLogs[key] || {};
@@ -1490,9 +1542,18 @@ export default function FitnessPlanGenerator() {
                       )}
                     </div>
                   );
-                })}
+                }) : (
+                  <input
+                    type="text"
+                    value={dayReasons[w.day] || ""}
+                    onChange={e => updateDayReason(w.day, e.target.value)}
+                    placeholder="Why did you miss this day? (sick, travel, ran out of time...)"
+                    className="reason-input"
+                  />
+                )}
               </div>
-            ))}
+              );
+            })}
 
             <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week. Specific skip reasons are captured above, next to each exercise." />
 
