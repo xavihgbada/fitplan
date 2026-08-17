@@ -171,6 +171,9 @@
 .field-input.has-error {
   border-color: var(--danger);
 }
+.field-input.is-prefilled {
+  color: var(--faint);
+}
 .field-error {
   font-size: 0.78rem;
   color: var(--danger);

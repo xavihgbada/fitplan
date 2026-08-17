@@ -13,7 +13,7 @@ const TypeTag = ({ type }) => {
 
 const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid #E5E7EB", fontSize: "0.9rem", color: "#111827", background: "#FAFAFA", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
 
-const Field = ({ label, name, value, onChange, placeholder, as = "input", type = "text", options, hint, error, suggestions }) => {
+const Field = ({ label, name, value, onChange, placeholder, as = "input", type = "text", options, hint, error, suggestions, muted }) => {
   const isDropdown = as === "select" || !!suggestions;
   const [open, setOpen] = useState(false);
   const comboRef = useRef(null);
@@ -66,7 +66,7 @@ const Field = ({ label, name, value, onChange, placeholder, as = "input", type =
           )}
         </div>
       ) : (
-        <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
+        <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} className={`field-input${error ? " has-error" : ""}${muted ? " is-prefilled" : ""}`} onFocus={e => e.target.style.borderColor = "var(--accent)"} onBlur={e => e.target.style.borderColor = error ? "var(--danger)" : "var(--line)"} />
       )}
       {error && <p className="field-error">{error}</p>}
     </div>

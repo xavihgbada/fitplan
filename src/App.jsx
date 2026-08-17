@@ -78,6 +78,7 @@ export default function FitnessPlanGenerator() {
   const [checkInState, setCheckInState] = useState({}); // "day::exerciseName" -> true/false
   const [skipReasons, setSkipReasons] = useState({}); // "day::exerciseName" -> reason string, only used when skipped
   const [checkInLogs, setCheckInLogs] = useState({}); // "day::exerciseName" -> { avgWeight, avgReps }, only used when done
+  const [prefillLogs, setPrefillLogs] = useState({}); // snapshot of checkInLogs as pre-filled at modal-open time — never mutated after, used only to tell whether a field still matches its pre-fill (for the muted-until-edited styling)
   const [dayCheckInState, setDayCheckInState] = useState({}); // day -> true/false, default true (missing key treated as true); false means the whole day was missed
   const [dayReasons, setDayReasons] = useState({}); // day -> reason string, only used when a whole day is unchecked
   const [checkInNotes, setCheckInNotes] = useState("");
@@ -536,14 +537,28 @@ export default function FitnessPlanGenerator() {
 
   const openCheckIn = () => {
     const initial = {};
+    const initialLogs = {};
+    // Same "latest checkin" lookup getExerciseRecommendation uses (checkins[length-1],
+    // exact day+exercise-name key into completed_exercises) — reused here rather than
+    // a second matching method, and deliberately only the immediately preceding
+    // check-in, never scanning further back into history.
+    const latestCheckin = checkins[checkins.length - 1];
     plan.workouts.forEach(w => {
       w.exercises.forEach(ex => {
-        initial[`${w.day}::${ex.name}`] = true; // default: assume completed, uncheck to report a skip
+        const key = `${w.day}::${ex.name}`;
+        initial[key] = true; // default: assume completed, uncheck to report a skip
+        const prior = latestCheckin?.completed_exercises?.[w.day]?.[ex.name];
+        if (!prior?.done) return; // no prior check-in for this exercise (skipped, or never logged) — nothing to pre-fill
+        const log = {};
+        if (typeof prior.avgWeight === "number") log.avgWeight = prior.avgWeight;
+        if (typeof prior.avgReps === "number") log.avgReps = prior.avgReps;
+        if (Object.keys(log).length > 0) initialLogs[key] = log;
       });
     });
     setCheckInState(initial);
     setSkipReasons({});
-    setCheckInLogs({});
+    setCheckInLogs(initialLogs);
+    setPrefillLogs(initialLogs);
     setDayCheckInState({});
     setDayReasons({});
     setShowCheckIn(true);
@@ -637,6 +652,7 @@ export default function FitnessPlanGenerator() {
       setCheckInState({});
       setSkipReasons({});
       setCheckInLogs({});
+      setPrefillLogs({});
       setDayCheckInState({});
       setDayReasons({});
       setCheckInNotes("");
@@ -1558,6 +1574,9 @@ export default function FitnessPlanGenerator() {
                   const key = `${w.day}::${ex.name}`;
                   const done = !!checkInState[key];
                   const log = checkInLogs[key] || {};
+                  const prefill = prefillLogs[key] || {};
+                  const weightIsPrefilled = prefill.avgWeight != null && log.avgWeight === prefill.avgWeight;
+                  const repsIsPrefilled = prefill.avgReps != null && log.avgReps === prefill.avgReps;
                   return (
                     <div key={ei} className="checkin-exercise">
                       <label className="checkin-exercise-label">
@@ -1566,8 +1585,8 @@ export default function FitnessPlanGenerator() {
                       </label>
                       {done ? (
                         <div className="checkin-log-row">
-                          <Field label="Weight (kg)" name="avgWeight" type="number" value={log.avgWeight ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgWeight", e.target.value)} placeholder="optional" />
-                          <Field label="Reps" name="avgReps" type="number" value={log.avgReps ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgReps", e.target.value)} placeholder="optional" />
+                          <Field label="Weight (kg)" name="avgWeight" type="number" value={log.avgWeight ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgWeight", e.target.value)} placeholder="optional" muted={weightIsPrefilled} />
+                          <Field label="Reps" name="avgReps" type="number" value={log.avgReps ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgReps", e.target.value)} placeholder="optional" muted={repsIsPrefilled} />
                         </div>
                       ) : (
                         <input
