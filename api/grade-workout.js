@@ -1,11 +1,18 @@
 import { getVerifiedUser } from "./_lib/supabaseAuth.js";
 import { getAccessState, markFreeActionUsed, incrementPlansGenerated } from "./_lib/accessGate.js";
+import { validateAnthropicRequest } from "./_lib/validateAnthropicRequest.js";
+import { GRADE_SYSTEM_PROMPT } from "../src/prompts.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   const user = await getVerifiedUser(req);
   if (!user) return res.status(401).json({ error: "Authentication required" });
+
+  const validationError = validateAnthropicRequest(req.body, [
+    { model: "claude-sonnet-4-6", maxTokens: 1500, system: GRADE_SYSTEM_PROMPT },
+  ]);
+  if (validationError) return res.status(400).json({ error: validationError });
 
   const access = await getAccessState(user.id);
   if (!access.hasPaid && access.freeActionUsed) {
