@@ -753,7 +753,6 @@
   background: var(--surface);
   border-radius: 14px;
   border: 1px solid var(--line);
-  overflow: hidden;
   box-shadow: var(--shadow);
   text-align: left;
 }
@@ -763,6 +762,7 @@
   padding: 0.85rem 1rem 0;
   display: flex;
   gap: 0.25rem;
+  border-radius: 14px 14px 0 0;
 }
 
 .landing-preview-tab {

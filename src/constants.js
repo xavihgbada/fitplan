@@ -46,13 +46,15 @@ const HOME_EQUIPMENT_OPTIONS = [
   { id: "cardio_machines", label: "Cardio machine (bike, treadmill, etc.)" },
 ];
 
-// Milestone thresholds for the streak badge row. Icons reuse plain emoji (the same
-// iconography already used throughout the app, e.g. the 🎉 purchase banner) rather
-// than pulling in an icon library for three static glyphs.
+// Milestone thresholds for the streak badge row. Each renders as a lucide Medal
+// icon (see App.jsx) tinted by `color` — bronze/silver/gold — since a plain-data
+// .js file can't hold a JSX icon element itself (that's why this stays a hex
+// string here instead of the icon component); the color is what used to be
+// carried by the medal emoji's own color, now carried explicitly instead.
 const STREAK_BADGES = [
-  { weeks: 3, label: "3-Week Streak", icon: "🥉" },
-  { weeks: 6, label: "6-Week Streak", icon: "🥈" },
-  { weeks: 10, label: "10-Week Streak", icon: "🥇" },
+  { weeks: 3, label: "3-Week Streak", color: "#CD7F32" },
+  { weeks: 6, label: "6-Week Streak", color: "#C0C0C0" },
+  { weeks: 10, label: "10-Week Streak", color: "#FFD700" },
 ];
 const getEarnedBadges = (streak) => STREAK_BADGES.filter(b => streak >= b.weeks);
 const LANDING_PREVIEW_EXERCISES = [
