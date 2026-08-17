@@ -46,6 +46,11 @@ const HOME_EQUIPMENT_OPTIONS = [
   { id: "cardio_machines", label: "Cardio machine (bike, treadmill, etc.)" },
 ];
 
+// Shared with api/_lib/swapLimit.js (single source of truth for the cap, so
+// the frontend's displayed "N left this week" can never drift from what the
+// server actually enforces).
+const SWAPS_PER_WEEK = 2;
+
 // Milestone thresholds for the streak badge row. Each renders as a lucide Medal
 // icon (see App.jsx) tinted by `color` — bronze/silver/gold — since a plain-data
 // .js file can't hold a JSX icon element itself (that's why this stays a hex
@@ -76,4 +81,4 @@ const TAG_COLORS = {
   "Lower Body": { bg: "#FFF7ED", color: "#9A3412" },
 };
 
-export { EFFORT_OPTIONS, DAYS_OF_WEEK, EXCUSE_SUGGESTIONS, ENJOY_SUGGESTIONS, DISLIKE_SUGGESTIONS, HOME_EQUIPMENT_OPTIONS, STREAK_BADGES, getEarnedBadges, LANDING_PREVIEW_EXERCISES, TAG_COLORS };
+export { EFFORT_OPTIONS, DAYS_OF_WEEK, EXCUSE_SUGGESTIONS, ENJOY_SUGGESTIONS, DISLIKE_SUGGESTIONS, HOME_EQUIPMENT_OPTIONS, SWAPS_PER_WEEK, STREAK_BADGES, getEarnedBadges, LANDING_PREVIEW_EXERCISES, TAG_COLORS };

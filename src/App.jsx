@@ -6,7 +6,7 @@ import { exportToPDF } from "./pdfExport";
 import { SYSTEM_PROMPT, ADJUST_SYSTEM_PROMPT, SWAP_SYSTEM_PROMPT, GRADE_SYSTEM_PROMPT, buildPrompt, buildAdjustPrompt, buildSwapPrompt, buildGradePrompt } from "./prompts";
 import {
   EFFORT_OPTIONS, DAYS_OF_WEEK, EXCUSE_SUGGESTIONS, ENJOY_SUGGESTIONS, DISLIKE_SUGGESTIONS,
-  STREAK_BADGES, getEarnedBadges, LANDING_PREVIEW_EXERCISES,
+  STREAK_BADGES, getEarnedBadges, LANDING_PREVIEW_EXERCISES, SWAPS_PER_WEEK,
 } from "./constants";
 import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeFix } from "./grading";
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
@@ -71,6 +71,7 @@ export default function FitnessPlanGenerator() {
   const [planId, setPlanId] = useState(null);
   const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [checkins, setCheckins] = useState([]);
+  const [swapCounts, setSwapCounts] = useState({}); // "<week_number>" -> count, mirrors plans.swap_counts
   const [lifetimeCheckins, setLifetimeCheckins] = useState([]); // every check-in for this user across ALL plans, for the lifetime completed-exercises total — not plan_id-scoped like `checkins` above
   const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]); // badges crossed by the just-submitted check-in, shown once then dismissed
   const [currentWeek, setCurrentWeek] = useState(1);
@@ -279,7 +280,7 @@ export default function FitnessPlanGenerator() {
       .insert({ user_id: session.user.id, title: planData.title, plan_data: planData })
       .select()
       .single();
-    if (data) { setPlanId(data.id); setPlanCreatedAt(data.created_at); }
+    if (data) { setPlanId(data.id); setPlanCreatedAt(data.created_at); setSwapCounts({}); }
     loadSavedPlans();
   };
 
@@ -301,11 +302,12 @@ export default function FitnessPlanGenerator() {
   };
 
   const loadPlan = async (id) => {
-    const { data } = await supabase.from("plans").select("plan_data, created_at").eq("id", id).single();
+    const { data } = await supabase.from("plans").select("plan_data, created_at, swap_counts").eq("id", id).single();
     if (data) {
       setPlan(data.plan_data);
       setPlanId(id);
       setPlanCreatedAt(data.created_at);
+      setSwapCounts(data.swap_counts || {}); // {} for plans saved before this column existed
       setShowSavedPlans(false);
       setActiveWorkout(0);
       loadCheckins(id);
@@ -377,6 +379,7 @@ export default function FitnessPlanGenerator() {
   const currentStreak = computeStreak(checkins, planId);
   const earnedBadges = getEarnedBadges(currentStreak);
   const lifetimeCompleted = computeLifetimeCompleted(lifetimeCheckins);
+  const remainingSwaps = Math.max(0, SWAPS_PER_WEEK - (swapCounts[currentWeek] || 0));
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -686,9 +689,11 @@ export default function FitnessPlanGenerator() {
           max_tokens: 300,
           system: SWAP_SYSTEM_PROMPT,
           messages: [{ role: "user", content: buildSwapPrompt(workout, workout.exercises[index], swapReason.trim() || "No reason given") }],
+          planId,
         }),
       });
       const data = await res.json();
+      if (!res.ok) { setSwapError(data.error || "Couldn't find a replacement. Please try again."); return; }
       const text = data.content?.map(b => b.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const newExercise = JSON.parse(clean);
@@ -701,6 +706,7 @@ export default function FitnessPlanGenerator() {
       };
       setPlan(updatedPlan);
       if (planId) await supabase.from("plans").update({ plan_data: updatedPlan }).eq("id", planId);
+      setSwapCounts(prev => ({ ...prev, [currentWeek]: (prev[currentWeek] || 0) + 1 }));
       setSwapOpenKey(null);
     } catch (e) {
       setSwapError("Couldn't find a replacement. Please try again.");
@@ -1390,7 +1396,11 @@ export default function FitnessPlanGenerator() {
                                   {ex.name}
                                   <span onClick={() => openYoutube(ex.name)} className="exercise-action-btn">▶ how to</span>
                                   {planId && (
-                                    <span onClick={() => openSwap(w.day, i)} className="exercise-action-btn">Can't do this?</span>
+                                    remainingSwaps > 0 ? (
+                                      <span onClick={() => openSwap(w.day, i)} className="exercise-action-btn">Can't do this?</span>
+                                    ) : (
+                                      <span className="exercise-action-btn" style={{ color: "var(--faint)", background: "var(--paper)", borderColor: "var(--line)", cursor: "default" }} title="Swap limit reached for this week — resets next week">Swap limit reached</span>
+                                    )
                                   )}
                                 </div>
                                 {ex.note && <div className="exercise-note">{renderWithGlossary(ex.note)}</div>}
@@ -1408,6 +1418,7 @@ export default function FitnessPlanGenerator() {
                             )}
                             {swapOpenKey === swapKey && (
                               <div style={{ padding: "0 0.9rem 0.75rem" }}>
+                                <p style={{ fontSize: "0.72rem", color: "var(--faint)", margin: "0 0 0.35rem" }}>{remainingSwaps} swap{remainingSwaps === 1 ? "" : "s"} left this week</p>
                                 <input
                                   type="text"
                                   value={swapReason}

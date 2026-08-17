@@ -1,6 +1,7 @@
 import { getVerifiedUser } from "./_lib/supabaseAuth.js";
 import { getAccessState, incrementPlansGenerated } from "./_lib/accessGate.js";
 import { validateAnthropicRequest } from "./_lib/validateAnthropicRequest.js";
+import { checkSwapLimit, recordSwap } from "./_lib/swapLimit.js";
 import { ADJUST_SYSTEM_PROMPT, SWAP_SYSTEM_PROMPT } from "../src/prompts.js";
 
 export default async function handler(req, res) {
@@ -35,6 +36,17 @@ export default async function handler(req, res) {
     return res.status(402).json({ error: "You've used your included generations — buy another to keep going." });
   }
 
+  // Swap limit is a separate, additional gate on top of the paid-caller check
+  // above, not a replacement for it — every paid caller doing a swap still
+  // needs to be under the per-week cap for this specific plan.
+  let swapState = null;
+  if (!isFullAdjust) {
+    swapState = await checkSwapLimit(user.id, req.body.planId);
+    if (!swapState.allowed) {
+      return res.status(swapState.status).json({ error: swapState.error });
+    }
+  }
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -48,6 +60,9 @@ export default async function handler(req, res) {
 
   if (isFullAdjust && response.ok) {
     await incrementPlansGenerated(user.id);
+  }
+  if (!isFullAdjust && response.ok) {
+    await recordSwap(swapState);
   }
 
   res.status(200).json(data);
