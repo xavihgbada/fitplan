@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Dumbbell, Flame, ClipboardList, PartyPopper, Bed, RefreshCw, Calendar, Medal } from "lucide-react";
 import { TermsOfService, PrivacyPolicy } from "./legal";
 import { exportToPDF } from "./pdfExport";
 import { SYSTEM_PROMPT, ADJUST_SYSTEM_PROMPT, SWAP_SYSTEM_PROMPT, GRADE_SYSTEM_PROMPT, buildPrompt, buildAdjustPrompt, buildSwapPrompt, buildGradePrompt } from "./prompts";
@@ -696,7 +697,7 @@ export default function FitnessPlanGenerator() {
     return (
       <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
         <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem" }}>
-          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
+          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center" }}><Dumbbell size={18} color="#fff" /></div>
           <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
           <button onClick={() => setPage("app")} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>← Back</button>
         </div>
@@ -709,7 +710,7 @@ export default function FitnessPlanGenerator() {
     return (
       <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
         <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem" }}>
-          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>💪</div>
+          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center" }}><Dumbbell size={18} color="#fff" /></div>
           <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
           <button onClick={() => setPage("app")} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>← Back</button>
         </div>
@@ -723,7 +724,7 @@ export default function FitnessPlanGenerator() {
       <div className="auth-shell">
         <div className="auth-card">
           <div className="auth-brand">
-            <div className="app-mark">💪</div>
+            <div className="app-mark"><Dumbbell size={18} color="#fff" /></div>
             <div className="app-wordmark">FitPlan AI</div>
           </div>
           {resetSuccess ? (
@@ -755,7 +756,7 @@ export default function FitnessPlanGenerator() {
     return (
       <div className="landing">
         <div className="landing-brand">
-          <div className="app-mark">💪</div>
+          <div className="app-mark"><Dumbbell size={18} color="#fff" /></div>
           <div className="app-wordmark">FitPlan AI</div>
         </div>
 
@@ -918,7 +919,7 @@ export default function FitnessPlanGenerator() {
       <div className="auth-shell">
         <div className="auth-card">
           <div className="auth-brand">
-            <div className="app-mark">💪</div>
+            <div className="app-mark"><Dumbbell size={18} color="#fff" /></div>
             <div className="app-wordmark">FitPlan AI</div>
           </div>
           <h2 className="auth-title">{authMode === "login" ? "Welcome back" : "Create account"}</h2>
@@ -970,7 +971,7 @@ export default function FitnessPlanGenerator() {
     <div className="app-shell">
 
       <div className="app-header">
-        <div className="app-mark">💪</div>
+        <div className="app-mark"><Dumbbell size={18} color="#fff" /></div>
         <div>
           <div className="app-wordmark">FitPlan AI</div>
           <div className="app-tagline">Your Personalized Fitness AI</div>
@@ -978,7 +979,7 @@ export default function FitnessPlanGenerator() {
         <div className="header-actions">
           {profile?.has_paid && (
             <button onClick={() => setShowSavedPlans(!showSavedPlans)} className="btn btn-ghost">
-              📋 My Plans ({savedPlans.length})
+              <ClipboardList size={14} style={{ verticalAlign: -2, marginRight: "0.3rem" }} />My Plans ({savedPlans.length})
             </button>
           )}
           {profile?.has_paid && (
@@ -988,10 +989,10 @@ export default function FitnessPlanGenerator() {
           )}
           {profile?.has_paid && plan && planId && currentStreak >= 1 && (
             <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }} title={`${currentStreak} consecutive weekly check-in${currentStreak === 1 ? "" : "s"}`}>
-              🔥 {currentStreak}-week streak
+              <Flame size={14} /> {currentStreak}-week streak
               {earnedBadges.length > 0 && (
                 <span style={{ display: "inline-flex", gap: "0.15rem" }}>
-                  {earnedBadges.map(b => <span key={b.weeks} title={b.label}>{b.icon}</span>)}
+                  {earnedBadges.map(b => <span key={b.weeks} title={b.label}><Medal size={15} color={b.color} /></span>)}
                 </span>
               )}
             </span>
@@ -1060,8 +1061,8 @@ export default function FitnessPlanGenerator() {
           <div className="info-box info-box-cool" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
             <p style={{ margin: 0 }}>
               {justUnlocked === "extra_generation"
-                ? <>🎉 Credit added! Your extra €7 covers <strong>one more plan generation or routine grade</strong>. Use it whenever you're ready.</>
-                : <>🎉 You're unlocked! Your €19 covers <strong>3 plan generations or routine grades</strong> total. Use them whenever you're ready.</>}
+                ? <><PartyPopper size={16} style={{ verticalAlign: -3, marginRight: "0.3rem" }} />Credit added! Your extra €7 covers <strong>one more plan generation or routine grade</strong>. Use it whenever you're ready.</>
+                : <><PartyPopper size={16} style={{ verticalAlign: -3, marginRight: "0.3rem" }} />You're unlocked! Your €19 covers <strong>3 plan generations or routine grades</strong> total. Use them whenever you're ready.</>}
             </p>
             <span onClick={() => setJustUnlocked(null)} style={{ cursor: "pointer", fontWeight: 700, color: "var(--accent-deep)", flexShrink: 0 }}>×</span>
           </div>
@@ -1072,7 +1073,7 @@ export default function FitnessPlanGenerator() {
         <div style={{ maxWidth: 720, margin: "0.85rem auto 0", padding: "0 1.25rem" }}>
           <div className="info-box info-box-cool" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
             <p style={{ margin: 0 }}>
-              {newlyEarnedBadges.map(b => b.icon).join(" ")} New badge{newlyEarnedBadges.length > 1 ? "s" : ""}: <strong>{newlyEarnedBadges.map(b => b.label).join(", ")}</strong>. {currentStreak} weeks checked in, in a row.
+              {newlyEarnedBadges.map(b => <Medal key={b.weeks} size={16} color={b.color} style={{ verticalAlign: -3, marginRight: "0.15rem" }} />)}New badge{newlyEarnedBadges.length > 1 ? "s" : ""}: <strong>{newlyEarnedBadges.map(b => b.label).join(", ")}</strong>. {currentStreak} weeks checked in, in a row.
             </p>
             <span onClick={() => setNewlyEarnedBadges([])} style={{ cursor: "pointer", fontWeight: 700, color: "var(--accent-deep)", flexShrink: 0 }}>×</span>
           </div>
@@ -1085,7 +1086,7 @@ export default function FitnessPlanGenerator() {
             <h3 style={{ fontSize: "0.9rem", fontWeight: 800, margin: "0 0 1rem", letterSpacing: "-0.01em" }}>My Saved Plans</h3>
             {savedPlans.length === 0 ? (
               <div style={{ textAlign: "center", padding: "1.5rem 0.5rem" }}>
-                <div style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>📋</div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}><ClipboardList size={26} color="#9CA3AF" /></div>
                 <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: 0, lineHeight: 1.5 }}>No saved plans yet. Generate a plan and unlock it to see it here.</p>
               </div>
             ) : (
@@ -1289,11 +1290,11 @@ export default function FitnessPlanGenerator() {
               <h2 className="results-title">{plan.title}</h2>
               <p className="results-summary">{plan.summary}</p>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-                <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)" }}>📅 {plan.schedule?.join(", ")}</span>
+                <span className="pill" style={{ background: "var(--accent-bg)", color: "var(--accent-deep)" }}><Calendar size={13} style={{ verticalAlign: -2, marginRight: "0.3rem" }} />{plan.schedule?.join(", ")}</span>
                 {plan.is_deload_week ? (
-                  <span className="pill" style={{ background: "var(--warm-bg)", color: "var(--warm-text)" }}>🧘 Deload Week</span>
+                  <span className="pill" style={{ background: "var(--warm-bg)", color: "var(--warm-text)" }}><Bed size={13} style={{ verticalAlign: -2, marginRight: "0.3rem" }} />Deload Week</span>
                 ) : (
-                  <span className="pill" style={{ background: "var(--cool-bg)", color: "var(--cool-text)" }}>🔄 Ongoing plan</span>
+                  <span className="pill" style={{ background: "var(--cool-bg)", color: "var(--cool-text)" }}><RefreshCw size={13} style={{ verticalAlign: -2, marginRight: "0.3rem" }} />Ongoing plan</span>
                 )}
               </div>
             </div>
@@ -1303,11 +1304,11 @@ export default function FitnessPlanGenerator() {
                 <div className="streak-card-row">
                   <div>
                     <div className="section-title">Check-in Streak</div>
-                    <div className="streak-card-count">🔥 {currentStreak}<span className="streak-card-unit">{currentStreak === 1 ? " week" : " weeks"}</span></div>
+                    <div className="streak-card-count"><Flame size={22} color="#EA580C" style={{ verticalAlign: -3, marginRight: "0.2rem" }} />{currentStreak}<span className="streak-card-unit">{currentStreak === 1 ? " week" : " weeks"}</span></div>
                   </div>
                   {earnedBadges.length > 0 && (
                     <div className="streak-card-badges">
-                      {earnedBadges.map(b => <span key={b.weeks} title={b.label}>{b.icon}</span>)}
+                      {earnedBadges.map(b => <span key={b.weeks} title={b.label}><Medal size={15} color={b.color} /></span>)}
                     </div>
                   )}
                 </div>

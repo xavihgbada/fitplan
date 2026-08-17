@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Dumbbell, Home, PersonStanding } from "lucide-react";
 import { TAG_COLORS, HOME_EQUIPMENT_OPTIONS } from "../constants";
 
 const TypeTag = ({ type }) => {
@@ -89,11 +90,13 @@ const EquipmentSelector = ({ location, onLocationChange, selected, onEquipmentCh
       <label className="equip-label">Where do you train?</label>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.85rem", flexWrap: "wrap" }}>
         {[
-          { id: "full_gym", label: "🏋️ Commercial gym" },
-          { id: "home_gym", label: "🏠 Home gym" },
-          { id: "bodyweight", label: "🤸 Bodyweight only" },
+          { id: "full_gym", label: "Commercial gym", Icon: Dumbbell },
+          { id: "home_gym", label: "Home gym", Icon: Home },
+          { id: "bodyweight", label: "Bodyweight only", Icon: PersonStanding },
         ].map(opt => (
-          <button key={opt.id} onClick={() => onLocationChange(opt.id)} type="button" className={`equip-btn${location === opt.id ? " is-selected" : ""}${error ? " has-error" : ""}`}>{opt.label}</button>
+          <button key={opt.id} onClick={() => onLocationChange(opt.id)} type="button" className={`equip-btn${location === opt.id ? " is-selected" : ""}${error ? " has-error" : ""}`}>
+            <opt.Icon size={14} style={{ verticalAlign: -2, marginRight: "0.3rem" }} />{opt.label}
+          </button>
         ))}
       </div>
       {error && <p className="equip-error">{error}</p>}
