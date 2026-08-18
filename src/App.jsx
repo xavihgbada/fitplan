@@ -717,11 +717,11 @@ export default function FitnessPlanGenerator() {
 
   if (page === "terms") {
     return (
-      <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
-        <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem" }}>
-          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center" }}><Dumbbell size={18} color="#fff" /></div>
-          <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
-          <button onClick={() => setPage("app")} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>← Back</button>
+      <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
+        <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--line)", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem" }}>
+          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, var(--accent), var(--accent-deep))", display: "flex", alignItems: "center", justifyContent: "center" }}><Dumbbell size={18} color="#fff" /></div>
+          <div style={{ fontFamily: "var(--display)", fontWeight: 600, fontSize: "0.95rem", color: "var(--ink)" }}>FitPlan AI</div>
+          <button onClick={() => setPage("app")} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid var(--line)", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "var(--muted)", cursor: "pointer", fontWeight: 600 }}>← Back</button>
         </div>
         <TermsOfService />
       </div>
@@ -730,11 +730,11 @@ export default function FitnessPlanGenerator() {
 
   if (page === "privacy") {
     return (
-      <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
-        <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem" }}>
-          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, #16A34A, #15803D)", display: "flex", alignItems: "center", justifyContent: "center" }}><Dumbbell size={18} color="#fff" /></div>
-          <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>FitPlan AI</div>
-          <button onClick={() => setPage("app")} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid #E5E7EB", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>← Back</button>
+      <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
+        <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--line)", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.7rem" }}>
+          <div style={{ width: 34, height: 34, borderRadius: "9px", background: "linear-gradient(135deg, var(--accent), var(--accent-deep))", display: "flex", alignItems: "center", justifyContent: "center" }}><Dumbbell size={18} color="#fff" /></div>
+          <div style={{ fontFamily: "var(--display)", fontWeight: 600, fontSize: "0.95rem", color: "var(--ink)" }}>FitPlan AI</div>
+          <button onClick={() => setPage("app")} style={{ marginLeft: "auto", padding: "0.4rem 0.9rem", border: "1.5px solid var(--line)", borderRadius: "7px", background: "transparent", fontSize: "0.82rem", color: "var(--muted)", cursor: "pointer", fontWeight: 600 }}>← Back</button>
         </div>
         <PrivacyPolicy />
       </div>
@@ -1104,24 +1104,24 @@ export default function FitnessPlanGenerator() {
 
       {showSavedPlans && (
         <div style={{ maxWidth: 720, margin: "1rem auto", padding: "0 1.25rem" }}>
-          <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "1.25rem" }}>
-            <h3 style={{ fontSize: "0.9rem", fontWeight: 800, margin: "0 0 1rem", letterSpacing: "-0.01em" }}>My Saved Plans</h3>
+          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--line)", padding: "1.25rem" }}>
+            <h3 style={{ fontFamily: "var(--display)", fontSize: "0.9rem", fontWeight: 700, margin: "0 0 1rem", letterSpacing: "-0.01em", color: "var(--ink)" }}>My Saved Plans</h3>
             {savedPlans.length === 0 ? (
               <div style={{ textAlign: "center", padding: "1.5rem 0.5rem" }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}><ClipboardList size={26} color="#9CA3AF" /></div>
-                <p style={{ fontSize: "0.85rem", color: "#6B7280", margin: 0, lineHeight: 1.5 }}>No saved plans yet. Generate a plan and unlock it to see it here.</p>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}><ClipboardList size={26} color="var(--faint)" /></div>
+                <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>No saved plans yet. Generate a plan and unlock it to see it here.</p>
               </div>
             ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {savedPlans.map(p => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.85rem", background: "#F9FAFB", borderRadius: "8px", border: "1px solid #F3F4F6" }}>
+                <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.85rem", background: "var(--paper)", borderRadius: "8px", border: "1px solid var(--line-soft)" }}>
                   <div>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#111827" }}>{p.title}</div>
-                    <div style={{ fontSize: "0.72rem", color: "#9CA3AF" }}>{new Date(p.created_at).toLocaleDateString()}</div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--ink)" }}>{p.title}</div>
+                    <div style={{ fontSize: "0.72rem", color: "var(--faint)" }}>{new Date(p.created_at).toLocaleDateString()}</div>
                   </div>
                   <div style={{ display: "flex", gap: "0.4rem" }}>
-                    <button onClick={() => loadPlan(p.id)} style={{ padding: "0.3rem 0.7rem", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "6px", fontSize: "0.78rem", color: "#16A34A", cursor: "pointer", fontWeight: 600 }}>Load</button>
-                    <button onClick={() => deletePlan(p.id)} style={{ padding: "0.3rem 0.7rem", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "6px", fontSize: "0.78rem", color: "#DC2626", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+                    <button onClick={() => loadPlan(p.id)} style={{ padding: "0.3rem 0.7rem", background: "var(--accent-bg)", border: "1px solid var(--accent-border)", borderRadius: "6px", fontSize: "0.78rem", color: "var(--accent-deep)", cursor: "pointer", fontWeight: 600 }}>Load</button>
+                    <button onClick={() => deletePlan(p.id)} style={{ padding: "0.3rem 0.7rem", background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: "6px", fontSize: "0.78rem", color: "var(--danger)", cursor: "pointer", fontWeight: 600 }}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -1426,7 +1426,7 @@ export default function FitnessPlanGenerator() {
                                   placeholder="Why? (no equipment, pain, dislike, or something else)"
                                   className="reason-input"
                                 />
-                                {swapError && <p style={{ fontSize: "0.72rem", color: "#DC2626", margin: "0.35rem 0 0" }}>{swapError}</p>}
+                                {swapError && <p style={{ fontSize: "0.72rem", color: "var(--danger)", margin: "0.35rem 0 0" }}>{swapError}</p>}
                                 <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
                                   <button onClick={() => setSwapOpenKey(null)} className="btn btn-ghost" style={{ padding: "0.3rem 0.7rem", fontSize: "0.75rem" }}>Cancel</button>
                                   <button onClick={() => submitSwap(w, i)} disabled={swapping} className="btn btn-solid" style={{ padding: "0.3rem 0.7rem", fontSize: "0.75rem" }}>

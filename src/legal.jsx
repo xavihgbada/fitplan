@@ -2,9 +2,9 @@ const LAST_UPDATED = "July 20, 2026";
 const CONTACT_EMAIL = "fitplanai.support@gmail.com";
 
 export const TermsOfService = () => (
-  <div style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem", fontFamily: "'Inter', system-ui, sans-serif", color: "#374151", lineHeight: 1.7 }}>
-    <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#111827", marginBottom: "0.25rem" }}>Terms of Service</h1>
-    <p style={{ fontSize: "0.82rem", color: "#9CA3AF", marginBottom: "2rem" }}>Last updated: {LAST_UPDATED}</p>
+  <div style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem", fontFamily: "var(--sans)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
+    <h1 style={{ fontFamily: "var(--display)", fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--ink)", marginBottom: "0.25rem" }}>Terms of Service</h1>
+    <p style={{ fontSize: "0.82rem", color: "var(--faint)", marginBottom: "2rem" }}>Last updated: {LAST_UPDATED}</p>
 
     <Section title="1. Acceptance of Terms">
       By accessing or using FitPlan AI ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Service.
@@ -47,15 +47,15 @@ export const TermsOfService = () => (
     </Section>
 
     <Section title="9. Contact">
-      If you have questions about these Terms, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#16A34A" }}>{CONTACT_EMAIL}</a>.
+      If you have questions about these Terms, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--accent)" }}>{CONTACT_EMAIL}</a>.
     </Section>
   </div>
 );
 
 export const PrivacyPolicy = () => (
-  <div style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem", fontFamily: "'Inter', system-ui, sans-serif", color: "#374151", lineHeight: 1.7 }}>
-    <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#111827", marginBottom: "0.25rem" }}>Privacy Policy</h1>
-    <p style={{ fontSize: "0.82rem", color: "#9CA3AF", marginBottom: "2rem" }}>Last updated: {LAST_UPDATED}</p>
+  <div style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem", fontFamily: "var(--sans)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
+    <h1 style={{ fontFamily: "var(--display)", fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--ink)", marginBottom: "0.25rem" }}>Privacy Policy</h1>
+    <p style={{ fontSize: "0.82rem", color: "var(--faint)", marginBottom: "2rem" }}>Last updated: {LAST_UPDATED}</p>
 
     <Section title="1. Information We Collect">
       We collect the following information when you use FitPlan AI:
@@ -78,7 +78,7 @@ export const PrivacyPolicy = () => (
     </Section>
 
     <Section title="3. AI Processing">
-      The fitness information you provide is sent to Anthropic's Claude API to generate your workout plan. This data is processed in accordance with <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#16A34A" }}>Anthropic's Privacy Policy</a>. We do not store your inputs beyond what is needed to generate and save your plan.
+      The fitness information you provide is sent to Anthropic's Claude API to generate your workout plan. This data is processed in accordance with <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>Anthropic's Privacy Policy</a>. We do not store your inputs beyond what is needed to generate and save your plan.
     </Section>
 
     <Section title="4. Data Storage">
@@ -97,7 +97,7 @@ export const PrivacyPolicy = () => (
         <li>Request deletion of your data</li>
         <li>Withdraw consent at any time by deleting your account</li>
       </ul>
-      To exercise these rights, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#16A34A" }}>{CONTACT_EMAIL}</a>.
+      To exercise these rights, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--accent)" }}>{CONTACT_EMAIL}</a>.
     </Section>
 
     <Section title="7. Cookies">
@@ -113,14 +113,14 @@ export const PrivacyPolicy = () => (
     </Section>
 
     <Section title="10. Contact">
-      If you have questions about this Privacy Policy, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#16A34A" }}>{CONTACT_EMAIL}</a>.
+      If you have questions about this Privacy Policy, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--accent)" }}>{CONTACT_EMAIL}</a>.
     </Section>
   </div>
 );
 
 const Section = ({ title, children }) => (
   <div style={{ marginBottom: "1.75rem" }}>
-    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#111827", marginBottom: "0.5rem" }}>{title}</h2>
+    <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--ink)", marginBottom: "0.5rem" }}>{title}</h2>
     <p style={{ margin: 0, fontSize: "0.9rem" }}>{children}</p>
   </div>
 );
