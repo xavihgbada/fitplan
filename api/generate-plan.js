@@ -18,6 +18,9 @@ export default async function handler(req, res) {
   if (!access.hasPaid && access.freeActionUsed) {
     return res.status(402).json({ error: "You've used your free action — unlock to keep going." });
   }
+  if (access.hasPaid && access.plansGenerated >= access.totalAllowed) {
+    return res.status(402).json({ error: "You've used your included generations — buy another to keep going." });
+  }
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
