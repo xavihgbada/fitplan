@@ -47,6 +47,11 @@ export default async function handler(req, res) {
     }
   }
 
+  // planId is only for the swap-limit check above — Anthropic's API strictly
+  // validates its request schema and rejects any unrecognized field, so it
+  // must not be forwarded as part of the actual request body.
+  const { planId, ...anthropicBody } = req.body;
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
       "x-api-key": process.env.ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify(req.body),
+    body: JSON.stringify(anthropicBody),
   });
   const data = await response.json();
 
