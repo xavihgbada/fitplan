@@ -1,4 +1,4 @@
-const LAST_UPDATED = "July 20, 2026";
+const LAST_UPDATED = "August 18, 2026";
 const CONTACT_EMAIL = "fitplanai.support@gmail.com";
 
 export const TermsOfService = () => (
@@ -38,15 +38,29 @@ export const TermsOfService = () => (
       The Service, including its design, code, and branding, is owned by FitPlan AI. The workout plans generated for you are for your personal use only and may not be redistributed or sold.
     </Section>
 
-    <Section title="7. Limitation of Liability">
+    <Section title="7. Payments and Refunds">
+      Paid purchases ("Unlock" and additional plan generations) are one-time payments processed by Stripe. All sales are final and non-refundable, except where required by applicable law. Access to what you purchase (additional plan generations, saving, and PDF export) is granted immediately upon successful payment.
+      <br /><br />
+      By completing a purchase, you expressly request that we begin providing the purchased digital content and features immediately, and you acknowledge that doing so means you lose any statutory right of withdrawal or cooling-off period that might otherwise apply to online purchases of digital content.
+    </Section>
+
+    <Section title="8. Disclaimer of Warranties">
+      The Service is provided "as is" and "as available," without warranties of any kind, whether express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. We do not warrant that the Service will be uninterrupted, error-free, or that AI-generated content will be accurate or suitable for your specific circumstances.
+    </Section>
+
+    <Section title="9. Limitation of Liability">
       To the fullest extent permitted by law, FitPlan AI and its owner shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the Service. In no event shall our total liability exceed the amount you paid for the Service in the past 12 months.
     </Section>
 
-    <Section title="8. Changes to Terms">
+    <Section title="10. Termination">
+      We may suspend or terminate your access to the Service at any time, with or without notice, if we believe you have violated these Terms or misused the Service. You may stop using the Service and request deletion of your account at any time by contacting us.
+    </Section>
+
+    <Section title="11. Changes to Terms">
       We reserve the right to update these Terms at any time. Continued use of the Service after changes are posted constitutes acceptance of the new Terms.
     </Section>
 
-    <Section title="9. Contact">
+    <Section title="12. Contact">
       If you have questions about these Terms, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--accent)" }}>{CONTACT_EMAIL}</a>.
     </Section>
   </div>
@@ -63,14 +77,16 @@ export const PrivacyPolicy = () => (
         <li><strong>Account information:</strong> your email address and password (stored securely via Supabase)</li>
         <li><strong>Fitness information:</strong> the goals, schedule, equipment, and preferences you enter when generating a plan</li>
         <li><strong>Generated plans:</strong> the workout plans created for you, stored to your account</li>
+        <li><strong>Progress data:</strong> the weekly check-ins you submit, including which exercises you completed and the reps/weight you log</li>
+        <li><strong>Payment information:</strong> handled entirely by Stripe (see Section 6) — we do not collect or store your card details</li>
       </ul>
-      We do not collect payment card details directly. Payments are handled by third-party processors.
     </Section>
 
     <Section title="2. How We Use Your Information">
       We use your information to:
       <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
-        <li>Generate and save your personalized fitness plans</li>
+        <li>Generate, adjust, and save your personalized fitness plans</li>
+        <li>Track your progress and tailor recommendations based on your check-ins</li>
         <li>Maintain and improve the Service</li>
         <li>Communicate with you about your account</li>
       </ul>
@@ -78,18 +94,26 @@ export const PrivacyPolicy = () => (
     </Section>
 
     <Section title="3. AI Processing">
-      The fitness information you provide is sent to Anthropic's Claude API to generate your workout plan. This data is processed in accordance with <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>Anthropic's Privacy Policy</a>. We do not store your inputs beyond what is needed to generate and save your plan.
+      The fitness and progress information you provide is sent to Anthropic's Claude API to generate, adjust, or grade your workout plans. This data is processed in accordance with <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>Anthropic's Privacy Policy</a>. We do not store your inputs beyond what is needed to generate, adjust, and save your plan.
     </Section>
 
-    <Section title="4. Data Storage">
+    <Section title="4. Exercise Data Lookup">
+      When you view or swap an exercise, the exercise name and equipment are sent to ExerciseDB (via RapidAPI), a third-party service, to look up a matching demonstration GIF. This lookup does not include your account information or any other personal data.
+    </Section>
+
+    <Section title="5. Data Storage">
       Your account and plan data is stored securely using Supabase, a third-party database provider. Data is protected using industry-standard security measures including row-level security policies that ensure only you can access your own data.
     </Section>
 
-    <Section title="5. Data Retention">
+    <Section title="6. Payments">
+      Payments are processed by Stripe. When you make a purchase, Stripe collects and processes your payment details directly — we never receive or store your card information. Stripe's use of your data is governed by <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>Stripe's Privacy Policy</a>.
+    </Section>
+
+    <Section title="7. Data Retention">
       We retain your data for as long as your account is active. You may request deletion of your account and associated data at any time by contacting us.
     </Section>
 
-    <Section title="6. Your Rights">
+    <Section title="8. Your Rights">
       You have the right to:
       <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
         <li>Access the personal data we hold about you</li>
@@ -100,19 +124,19 @@ export const PrivacyPolicy = () => (
       To exercise these rights, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--accent)" }}>{CONTACT_EMAIL}</a>.
     </Section>
 
-    <Section title="7. Cookies">
-      We use session cookies to keep you logged in. We do not use tracking or advertising cookies.
+    <Section title="9. Local Storage">
+      We use your browser's local storage (not cookies) to keep you logged in, and to temporarily save an in-progress plan or form you haven't submitted yet so it survives a page refresh or a trip through checkout — that temporary cache expires automatically within 24 hours. This data stays on your device and is not used for tracking or advertising. We do not use tracking or advertising cookies.
     </Section>
 
-    <Section title="8. Children's Privacy">
+    <Section title="10. Children's Privacy">
       The Service is not directed at children under 13. We do not knowingly collect personal information from children under 13.
     </Section>
 
-    <Section title="9. Changes to This Policy">
+    <Section title="11. Changes to This Policy">
       We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy on this page with an updated date.
     </Section>
 
-    <Section title="10. Contact">
+    <Section title="12. Contact">
       If you have questions about this Privacy Policy, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--accent)" }}>{CONTACT_EMAIL}</a>.
     </Section>
   </div>
