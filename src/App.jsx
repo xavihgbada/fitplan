@@ -592,6 +592,7 @@ export default function FitnessPlanGenerator() {
     if (submitCheckInRef.current) return;
     submitCheckInRef.current = true;
     setAdjusting(true);
+    setError("");
     try {
       const completed_exercises = {};
       plan.workouts.forEach(w => {
@@ -1625,6 +1626,7 @@ export default function FitnessPlanGenerator() {
 
             <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week. Specific skip reasons are captured above, next to each exercise." />
 
+            {error && <p className="form-error">{error}</p>}
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
               <button onClick={() => setShowCheckIn(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
               <button onClick={submitCheckIn} disabled={adjusting} className="btn btn-solid" style={{ flex: 2 }}>
