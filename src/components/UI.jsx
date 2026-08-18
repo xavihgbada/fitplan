@@ -3,7 +3,7 @@ import { Dumbbell, Home, PersonStanding } from "lucide-react";
 import { TAG_COLORS, HOME_EQUIPMENT_OPTIONS } from "../constants";
 
 const TypeTag = ({ type }) => {
-  const style = TAG_COLORS[type] || { bg: "#F3F4F6", color: "#374151" };
+  const style = TAG_COLORS[type] || { bg: "var(--line-soft)", color: "var(--ink-soft)" };
   return (
     <span className="type-tag" style={{ background: style.bg, color: style.color }}>
       {type}
@@ -11,7 +11,7 @@ const TypeTag = ({ type }) => {
   );
 };
 
-const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid #E5E7EB", fontSize: "0.9rem", color: "#111827", background: "#FAFAFA", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
+const inputStyle = { width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1.5px solid var(--line)", fontSize: "0.9rem", color: "var(--ink)", background: "var(--surface)", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" };
 
 const Field = ({ label, name, value, onChange, placeholder, as = "input", type = "text", options, hint, error, suggestions, muted }) => {
   const isDropdown = as === "select" || !!suggestions;
