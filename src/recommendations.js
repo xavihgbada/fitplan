@@ -1,3 +1,18 @@
+// Exercise names are supposed to be unique within a day (the AI naming rules say
+// so), but aren't guaranteed to be — two distinct variations of the same movement
+// (e.g. two "Cable Lateral Raise" entries) can still collide. completed_exercises
+// is keyed by name per day, so an undisambiguated collision means the second
+// occurrence's check-in data silently overwrites the first's. Suffixing every
+// occurrence after the first keeps each one's own storage slot, while leaving
+// the (overwhelmingly common) non-colliding case untouched.
+const dedupeExerciseNames = (exercises) => {
+  const counts = {};
+  return exercises.map(ex => {
+    counts[ex.name] = (counts[ex.name] || 0) + 1;
+    return counts[ex.name] === 1 ? ex.name : `${ex.name} #${counts[ex.name]}`;
+  });
+};
+
 // --- Progress tracking / recommendation logic ---
 // Pulls every number out of a reps string ("10-12", "8 each leg", "15") and
 // treats the min/max as the target range. Strings with no number (e.g. "AMRAP")
@@ -133,10 +148,11 @@ const shouldTriggerDeload = (plan, history, upcomingWeek) => {
   let tracked = 0;
   let flagged = 0;
   plan.workouts?.forEach(w => {
-    w.exercises?.forEach(ex => {
+    const storageNames = dedupeExerciseNames(w.exercises || []);
+    w.exercises?.forEach((ex, i) => {
       if (!parseRepRange(ex.reps)) return;
       tracked++;
-      if (getExerciseRecommendation(history, w.day, ex.name, ex.reps)?.level === "deload") flagged++;
+      if (getExerciseRecommendation(history, w.day, storageNames[i], ex.reps)?.level === "deload") flagged++;
     });
   });
   if (tracked > 0 && flagged / tracked >= DELOAD_EXERCISE_THRESHOLD) return true;
@@ -144,4 +160,4 @@ const shouldTriggerDeload = (plan, history, upcomingWeek) => {
   return upcomingWeek - (lastDeloadWeek ?? 0) >= DELOAD_TIME_FLOOR_WEEKS;
 };
 
-export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, shouldTriggerDeload };
+export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, shouldTriggerDeload, dedupeExerciseNames };
