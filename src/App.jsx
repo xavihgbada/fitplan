@@ -10,7 +10,7 @@ import {
 } from "./constants";
 import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeFix } from "./grading";
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
-import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload } from "./recommendations";
+import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload, dedupeExerciseNames } from "./recommendations";
 import { ScrollRevealCard, LANDING_FEATURES, LandingCarousel } from "./components/LandingCarousel";
 import { Testimonials } from "./components/Testimonials";
 import { CircularScore } from "./components/CircularScore";
@@ -115,18 +115,18 @@ export default function FitnessPlanGenerator() {
     if (session) { loadSavedPlans(); loadProfile(); }
   }, [session]);
 
-  // Neither /api/generate-plan nor /api/grade-workout streams a real progress
-  // signal (a single Anthropic call that resolves all at once), so this is a
-  // simulated bar: it eases toward 92% and holds there for however long the
-  // request actually takes, then the success path snaps it to 100% itself.
+  // Neither /api/generate-plan, /api/grade-workout, nor /api/adjust-plan streams a
+  // real progress signal (a single Anthropic call that resolves all at once), so
+  // this is a simulated bar: it eases toward 92% and holds there for however long
+  // the request actually takes, then the success path snaps it to 100% itself.
   useEffect(() => {
-    if (!loading && !grading) { setLoadingProgress(0); return; }
+    if (!loading && !grading && !adjusting) { setLoadingProgress(0); return; }
     setLoadingProgress(6);
     const interval = setInterval(() => {
       setLoadingProgress(p => (p >= 92 ? p : p + (92 - p) * 0.08));
     }, 250);
     return () => clearInterval(interval);
-  }, [loading, grading]);
+  }, [loading, grading, adjusting]);
 
   useEffect(() => {
     // After returning from Stripe checkout, poll for a little while so the
@@ -543,15 +543,16 @@ export default function FitnessPlanGenerator() {
     const initial = {};
     const initialLogs = {};
     // Same "latest checkin" lookup getExerciseRecommendation uses (checkins[length-1],
-    // exact day+exercise-name key into completed_exercises) — reused here rather than
-    // a second matching method, and deliberately only the immediately preceding
-    // check-in, never scanning further back into history.
+    // day + dedupeExerciseNames storage-name key into completed_exercises) — reused
+    // here rather than a second matching method, and deliberately only the
+    // immediately preceding check-in, never scanning further back into history.
     const latestCheckin = checkins[checkins.length - 1];
     plan.workouts.forEach(w => {
-      w.exercises.forEach(ex => {
-        const key = `${w.day}::${ex.name}`;
+      const storageNames = dedupeExerciseNames(w.exercises);
+      w.exercises.forEach((ex, i) => {
+        const key = `${w.day}::${storageNames[i]}`;
         initial[key] = true; // default: assume completed, uncheck to report a skip
-        const prior = latestCheckin?.completed_exercises?.[w.day]?.[ex.name];
+        const prior = latestCheckin?.completed_exercises?.[w.day]?.[storageNames[i]];
         if (!prior?.done) return; // no prior check-in for this exercise (skipped, or never logged) — nothing to pre-fill
         const log = {};
         if (typeof prior.avgWeight === "number") log.avgWeight = prior.avgWeight;
@@ -599,10 +600,11 @@ export default function FitnessPlanGenerator() {
       plan.workouts.forEach(w => {
         completed_exercises[w.day] = {};
         const dayDone = dayCheckInState[w.day] !== false;
-        w.exercises.forEach(ex => {
-          const key = `${w.day}::${ex.name}`;
+        const storageNames = dedupeExerciseNames(w.exercises);
+        w.exercises.forEach((ex, i) => {
+          const key = `${w.day}::${storageNames[i]}`;
           const done = dayDone && !!checkInState[key];
-          completed_exercises[w.day][ex.name] = done
+          completed_exercises[w.day][storageNames[i]] = done
             ? { done: true, avgWeight: checkInLogs[key]?.avgWeight ?? null, avgReps: checkInLogs[key]?.avgReps ?? null }
             : { done: false, reason: dayDone ? (skipReasons[key]?.trim() || "No reason given") : (dayReasons[w.day]?.trim() || "No reason given") };
         });
@@ -641,6 +643,7 @@ export default function FitnessPlanGenerator() {
       const text = data.content?.map(b => b.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const adjustedPlan = JSON.parse(clean);
+      setLoadingProgress(100);
       // Deload status is decided deterministically in JS (see shouldTriggerDeload),
       // not left to the model to echo back correctly — this is what the spacing rule
       // and the UI label above key off for the next check-in.
@@ -1370,6 +1373,7 @@ export default function FitnessPlanGenerator() {
                 {plan.workouts[activeWorkout] && (() => {
                   const w = plan.workouts[activeWorkout];
                   const firstEffortIndices = getFirstEffortIndices(w.exercises);
+                  const storageNames = dedupeExerciseNames(w.exercises);
                   return (
                     <div className="workout-panel" key={activeWorkout}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
@@ -1390,7 +1394,7 @@ export default function FitnessPlanGenerator() {
                       <div className="exercise-list">
                         {w.exercises?.map((ex, i) => {
                           const swapKey = `${w.day}::${i}`;
-                          const recommendation = getExerciseRecommendation(checkins, w.day, ex.name, ex.reps);
+                          const recommendation = getExerciseRecommendation(checkins, w.day, storageNames[i], ex.reps);
                           const recommendationTone = recommendation && GRADE_TONE_STYLES[RECOMMENDATION_TONE[recommendation.level]];
                           return (
                           <div key={i} className={`exercise-card${selectedExercise === ex.name ? " is-selected" : ""}`}>
@@ -1580,6 +1584,7 @@ export default function FitnessPlanGenerator() {
 
             {plan.workouts.map((w, wi) => {
               const dayDone = dayCheckInState[w.day] !== false;
+              const storageNames = dedupeExerciseNames(w.exercises);
               return (
               <div key={wi} className="checkin-day">
                 <label className="checkin-day-toggle">
@@ -1587,7 +1592,8 @@ export default function FitnessPlanGenerator() {
                   <span className="checkin-day-title">{w.day} · {w.name}</span>
                 </label>
                 {dayDone ? w.exercises.map((ex, ei) => {
-                  const key = `${w.day}::${ex.name}`;
+                  const storageName = storageNames[ei];
+                  const key = `${w.day}::${storageName}`;
                   const done = !!checkInState[key];
                   const log = checkInLogs[key] || {};
                   const prefill = prefillLogs[key] || {};
@@ -1596,19 +1602,19 @@ export default function FitnessPlanGenerator() {
                   return (
                     <div key={ei} className="checkin-exercise">
                       <label className="checkin-exercise-label">
-                        <input type="checkbox" checked={done} onChange={() => toggleExerciseDone(w.day, ex.name)} />
+                        <input type="checkbox" checked={done} onChange={() => toggleExerciseDone(w.day, storageName)} />
                         {ex.name}
                       </label>
                       {done ? (
                         <div className="checkin-log-row">
-                          <Field label="Weight (kg)" name="avgWeight" type="number" value={log.avgWeight ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgWeight", e.target.value)} placeholder="optional" muted={weightIsPrefilled} />
-                          <Field label="Reps" name="avgReps" type="number" value={log.avgReps ?? ""} onChange={e => updateCheckInLog(w.day, ex.name, "avgReps", e.target.value)} placeholder="optional" muted={repsIsPrefilled} />
+                          <Field label="Weight (kg)" name="avgWeight" type="number" value={log.avgWeight ?? ""} onChange={e => updateCheckInLog(w.day, storageName, "avgWeight", e.target.value)} placeholder="optional" muted={weightIsPrefilled} />
+                          <Field label="Reps" name="avgReps" type="number" value={log.avgReps ?? ""} onChange={e => updateCheckInLog(w.day, storageName, "avgReps", e.target.value)} placeholder="optional" muted={repsIsPrefilled} />
                         </div>
                       ) : (
                         <input
                           type="text"
                           value={skipReasons[key] || ""}
-                          onChange={e => updateSkipReason(w.day, ex.name, e.target.value)}
+                          onChange={e => updateSkipReason(w.day, storageName, e.target.value)}
                           placeholder="Why? (pain, too hard, ran out of time, boring...)"
                           className="reason-input"
                         />
@@ -1631,6 +1637,14 @@ export default function FitnessPlanGenerator() {
             <Field label="Anything else overall? (optional)" name="checkInNotes" value={checkInNotes} onChange={e => setCheckInNotes(e.target.value)} as="textarea" hint="General comments about the week. Specific skip reasons are captured above, next to each exercise." />
 
             {error && <p className="form-error">{error}</p>}
+            {adjusting && (
+              <div style={{ textAlign: "center", padding: "1.25rem 0 0.25rem" }}>
+                <div className="progress-bar-track">
+                  <div className="progress-bar-fill" style={{ width: `${Math.round(loadingProgress)}%` }} />
+                </div>
+                <p className="progress-bar-percent">{Math.round(loadingProgress)}%</p>
+              </div>
+            )}
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
               <button onClick={() => setShowCheckIn(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
               <button onClick={submitCheckIn} disabled={adjusting} className="btn btn-solid" style={{ flex: 2 }}>
