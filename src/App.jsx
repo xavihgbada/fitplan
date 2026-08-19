@@ -12,6 +12,7 @@ import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeF
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
 import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload } from "./recommendations";
 import { ScrollRevealCard, LANDING_FEATURES, LandingCarousel } from "./components/LandingCarousel";
+import { Testimonials } from "./components/Testimonials";
 import { CircularScore } from "./components/CircularScore";
 import { TypeTag, inputStyle, Field, Divider, EquipmentSelector } from "./components/UI";
 
@@ -925,7 +926,10 @@ export default function FitnessPlanGenerator() {
             </div>
           </div>
 
-          {/* Testimonials — add real, permission-confirmed quotes here once testers have said yes */}
+          <div style={{ marginTop: "3rem" }}>
+            <p className="landing-eyebrow">What people are saying</p>
+            <Testimonials />
+          </div>
         </div>
 
         <p className="landing-footer-links">
