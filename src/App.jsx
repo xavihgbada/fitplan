@@ -10,7 +10,7 @@ import {
 } from "./constants";
 import { GRADE_TONE_STYLES, computeGradeScore, getGradeScoreTone, classifyGradeFix } from "./grading";
 import { renderWithGlossary, getFirstEffortIndices } from "./glossary";
-import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload, dedupeExerciseNames } from "./recommendations";
+import { RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, getExerciseRecommendation, shouldTriggerDeload, dedupeExerciseNames, getNextCheckInDate, isCheckInDue } from "./recommendations";
 import { ScrollRevealCard, LANDING_FEATURES, LandingCarousel } from "./components/LandingCarousel";
 import { Testimonials } from "./components/Testimonials";
 import { CircularScore } from "./components/CircularScore";
@@ -522,10 +522,8 @@ export default function FitnessPlanGenerator() {
   const lastActivityDate = checkins.length > 0
     ? new Date(checkins[checkins.length - 1].created_at)
     : planCreatedAt ? new Date(planCreatedAt) : null;
-  const nextCheckInDate = lastActivityDate
-    ? new Date(lastActivityDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-    : null;
-  const canCheckIn = nextCheckInDate ? new Date() >= nextCheckInDate : false;
+  const nextCheckInDate = lastActivityDate ? getNextCheckInDate(lastActivityDate) : null;
+  const canCheckIn = isCheckInDue(lastActivityDate);
   const daysUntilCheckIn = nextCheckInDate
     ? Math.max(1, Math.ceil((nextCheckInDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : 0;
