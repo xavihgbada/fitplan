@@ -1,5 +1,5 @@
-const LAST_UPDATED = "August 18, 2026";
-const CONTACT_EMAIL = "fitplanai.support@gmail.com";
+const LAST_UPDATED = "August 30, 2026";
+const CONTACT_EMAIL = "support@fitplanai.fit";
 
 export const TermsOfService = () => (
   <div style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem", fontFamily: "var(--sans)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
