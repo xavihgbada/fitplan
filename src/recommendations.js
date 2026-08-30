@@ -13,6 +13,19 @@ const dedupeExerciseNames = (exercises) => {
   });
 };
 
+// A plan is due for a check-in 7 days after its last activity (the latest
+// checkin's created_at, or the plan's own created_at if there's no checkin
+// yet). Shared between the check-in button's enabled state (App.jsx) and the
+// weekly reminder cron (api/send-checkin-reminders.js) so the two thresholds
+// can never drift out of sync with each other.
+const CHECKIN_INTERVAL_DAYS = 7;
+
+const getNextCheckInDate = (lastActivityDate) =>
+  new Date(lastActivityDate.getTime() + CHECKIN_INTERVAL_DAYS * 24 * 60 * 60 * 1000);
+
+const isCheckInDue = (lastActivityDate, now = new Date()) =>
+  !!lastActivityDate && now >= getNextCheckInDate(lastActivityDate);
+
 // --- Progress tracking / recommendation logic ---
 // Pulls every number out of a reps string ("10-12", "8 each leg", "15") and
 // treats the min/max as the target range. Strings with no number (e.g. "AMRAP")
@@ -160,4 +173,4 @@ const shouldTriggerDeload = (plan, history, upcomingWeek) => {
   return upcomingWeek - (lastDeloadWeek ?? 0) >= DELOAD_TIME_FLOOR_WEEKS;
 };
 
-export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, shouldTriggerDeload, dedupeExerciseNames };
+export { parseRepRange, WEIGHT_STEP_KG, roundToHalfKg, computeRecommendation, getExerciseRecommendation, RECOMMENDATION_TONE, RECOMMENDATION_LABEL, computeStreak, computeLifetimeCompleted, shouldTriggerDeload, dedupeExerciseNames, CHECKIN_INTERVAL_DAYS, getNextCheckInDate, isCheckInDue };

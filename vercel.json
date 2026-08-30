@@ -12,5 +12,11 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/send-checkin-reminders",
+      "schedule": "0 9 * * *"
+    }
   ]
 }
